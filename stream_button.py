@@ -20,7 +20,7 @@ CIRCLE_FLASH = [
 ]
 #SOLID ON
 #the first four bits of the first byte corespond to the LEDs/LED you want to turn on/off!
-ALL_ ON = [[0b11110001, 0x23, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
+ALL_ON = [[0b11110001, 0x23, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 #TURNS OFF
 ALL_OFF = [[0b11110001, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 
@@ -28,67 +28,186 @@ ALL_OFF = [[0b11110001, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 
 from time import sleep
 from msvcrt import kbhit
-
+import websocket
 import pywinusb.hid as hid
+import thread
+import json
 
-def sample_handler(data):
-    print data
+buttonstate = 0
 
-def feature_test(target_usage):
-    # simple test
-    # browse devices...
-    all_hids = hid.find_all_hid_devices()
-    if all_hids:
-        for device in all_hids:
-            if device.vendor_id == 1994:
-                try:
-                    device.open()
-                    # browse feature reports
-                    for report in device.find_output_reports():
-                        target_usage = hid.get_full_usage_id(0xffa0, 0x02)
-                        if target_usage in report:
-                            report[target_usage] = [0b11110001, 0b00100011, 0b0000000, 0b00000000, 0b00000000, 0b00010001, 0b00000000, 0b00000000]
-                            report.send()
+class TwitchFollowerMonitor:
+    def __init__(self,usr):
+        #poop
+        return
 
-                            
-                finally:
-                    device.close()
-def raw_test():
-    # simple test
-    # browse devices...
-    all_hids = hid.find_all_hid_devices()
-    if all_hids:
-        while True:
-            for device in all_hids:
-                if device.vendor_id == 1994:
-                    try:
-                        device.open()
+    def start(self,callbk):
+        #start
+        return
 
-                        #set custom raw data handler
-                        device.set_raw_data_handler(sample_handler)
+    def stop(self):
+        #stop
+        return
 
-                        print("\nWaiting for data...\nPress any (system keyboard) key to stop...")
-                        while not kbhit() and device.is_plugged():
-                            #just keep the device opened to receive events
-                            sleep(0.5)
-                        return
-                    finally:
-                        device.close()
-    else:
-        print("There's not any non system HID class device available")
-#
+
+class OBSRemote:
+    def __init__(self,host,port):
+        self.host = host
+        self.port = port
+        self.streaming = False
+
+    def start(self):
+        #dothing
+        self.ws = websocket.WebSocketApp("ws://192.168.1.107:4444",
+                              on_message = self.on_message,
+                              on_error = self.on_error,
+                              on_close = self.on_close,
+                              subprotocols=["obsapi"])
+        thread.start_new_thread( self.ws.run_forever, () )
+
+    def stop(self):
+        #stopthing
+        self.ws.close()
+
+    def on_message(self,ws,msg):
+        #recv msg
+        try:
+            decoded = json.loads(msg)
+            if 'streaming' in decoded:
+                self.streaming = decoded['streaming']
+        except Exception, E:
+            print 'Bad thing happened parsing obsremote message'
+            print E
+        return
+
+    def on_error(self,ws,error):
+        #error
+        print 'OBSRemoteError'
+        print error
+        return
+
+    def on_close(self,ws):
+        #closed
+        print 'OBSRemote Socket closed'
+        return
+
+    def start_streaming(self):
+        if self.streaming == False:
+            print "OBSREMOTE : Starting stream"       
+            msg = {}
+            msg['message-id'] = "123123d"
+            msg['request-type'] = "StartStopStreaming"
+            msg["preview-only"] = True
+            self.ws.send(json.dumps(msg))
+            self.streaming = True
+        return
+
+    def stop_streaming(self):
+        if self.streaming:
+            print "OBSREMOTE : Stopping stream"        
+            msg = {}
+            msg['message-id'] = "123123d"
+            msg['request-type'] = "StartStopStreaming"
+            msg["preview-only"] = True
+            self.ws.send(json.dumps(msg))
+            self.streaming = False
+        return
+
+
+class AvrMediaButton:
+    def __init__(self,pressed_callback):
+        self.callback = pressed_callback
+        return
+
+    def start(self):
+        #init
+        filter = hid.HidDeviceFilter(vendor_id = 1994, product_id = 38992)
+        hid_device = filter.get_devices()
+        self.device = hid_device[0]
+        self.device.open()
+        self.device.set_raw_data_handler(self.press_handler)
+        self.target_usage = hid.get_full_usage_id(0xffa0, 0x02)
+        self.report = self.device.find_output_reports()[0] 
+        return
+
+    def stop(self):
+        #stoppit
+        self.turn_off()
+        self.device.close()
+        return
+
+    def press_handler(self,data):
+        if data[2] == 1:
+            self.callback()         
+        #elif data[2] == 0:                       
+        return
+
+    def flash(self):
+        #doflash
+        return
+
+    def glow(self):
+        #glow
+        return
+
+    def turn_on(self):
+        self.report[self.target_usage] = ALL_ON[0]
+        self.report.send()
+        return
+
+    def turn_off(self):
+        self.report[self.target_usage] = ALL_OFF[0]
+        self.report.send()
+        return
+
+
+
+buttonpressed = False
+def callbk():
+    global buttonpressed
+    buttonpressed = True
+
 if __name__ == '__main__':
     # first be kind with local encodings
-    import sys
-    if sys.version_info >= (3,):
-        # as is, don't handle unicodes
-        unicode = str
-        raw_input = input
-    else:
-        # allow to show encoded strings
-        import codecs
-        sys.stdout = codecs.getwriter('mbcs')(sys.stdout)
+    # import sys
+    # if sys.version_info >= (3,):
+    #     # as is, don't handle unicodes
+    #     unicode = str
+    #     raw_input = input
+    # else:
+    #     # allow to show encoded strings
+    #     import codecs
+    #     sys.stdout = codecs.getwriter('mbcs')(sys.stdout)
     #raw_test()
      # generic vendor page, usage_id = 2
     # go for it!
-    feature_test(target_usage)
+    #main_loop()
+    print 'startu'
+    x = OBSRemote(1,2)
+    x.start()
+    y = AvrMediaButton(callbk)
+    y.start()
+    old_streaming = False
+    try:
+        while True:
+            if buttonpressed:
+                if x.streaming:
+                    x.stop_streaming()
+                    buttonpressed = False
+                else:
+                    x.start_streaming()
+                    buttonpressed = False
+            if old_streaming != x.streaming:
+                if x.streaming:
+                    y.turn_on()
+                else:
+                    y.turn_off()
+                old_streaming = x.streaming
+    except KeyboardInterrupt:
+        pass
+    finally:
+        x.stop()
+        y.stop()
+
+
+x.stop()
+y.stop()
