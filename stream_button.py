@@ -50,14 +50,13 @@ class TwitchFollowerMonitor:
 
 
 class OBSRemote:
-    def __init__(self,host,port):
-        self.host = host
-        self.port = port
+    def __init__(self,url):
+        self.url = url
         self.streaming = False
 
     def start(self):
         #dothing
-        self.ws = websocket.WebSocketApp("ws://192.168.1.107:4444",
+        self.ws = websocket.WebSocketApp(self.url,
                               on_message = self.on_message,
                               on_error = self.on_error,
                               on_close = self.on_close,
@@ -96,7 +95,7 @@ class OBSRemote:
             msg = {}
             msg['message-id'] = "123123d"
             msg['request-type'] = "StartStopStreaming"
-            msg["preview-only"] = True
+            #msg["preview-only"] = True
             self.ws.send(json.dumps(msg))
             self.streaming = True
         return
@@ -107,7 +106,7 @@ class OBSRemote:
             msg = {}
             msg['message-id'] = "123123d"
             msg['request-type'] = "StartStopStreaming"
-            msg["preview-only"] = True
+            #msg["preview-only"] = True
             self.ws.send(json.dumps(msg))
             self.streaming = False
         return
@@ -167,26 +166,13 @@ def callbk():
     buttonpressed = True
 
 if __name__ == '__main__':
-    # first be kind with local encodings
-    # import sys
-    # if sys.version_info >= (3,):
-    #     # as is, don't handle unicodes
-    #     unicode = str
-    #     raw_input = input
-    # else:
-    #     # allow to show encoded strings
-    #     import codecs
-    #     sys.stdout = codecs.getwriter('mbcs')(sys.stdout)
-    #raw_test()
-     # generic vendor page, usage_id = 2
-    # go for it!
-    #main_loop()
-    print 'startu'
-    x = OBSRemote(1,2)
+    x = OBSRemote("ws://192.168.1.107:4444")
     x.start()
     y = AvrMediaButton(callbk)
     y.start()
     old_streaming = False
+    y.turn_off()
+    print "Button Ready!"
     try:
         while True:
             if buttonpressed:
@@ -198,16 +184,16 @@ if __name__ == '__main__':
                     buttonpressed = False
             if old_streaming != x.streaming:
                 if x.streaming:
+                    print "Now streaming"
                     y.turn_on()
                 else:
                     y.turn_off()
+                    print "Stream ended"
                 old_streaming = x.streaming
     except KeyboardInterrupt:
         pass
     finally:
         x.stop()
+        y.turn_off()
         y.stop()
 
-
-x.stop()
-y.stop()
