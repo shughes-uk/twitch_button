@@ -45,6 +45,14 @@ class OBSRemote(object):
         print 'OBSRemote Socket closed'
         return
 
+    def set_profile(self,name):
+        print "Setting profile to : %s" %name
+        msg = {}
+        msg['message-id'] = 'ffff34234'
+        msg['request-type'] = "SetProfile"
+        msg['profileName'] = name
+        self.ws.send(json.dumps(msg))
+
     def start_streaming(self):
         if self.streaming == False:
             print "OBSREMOTE : Starting stream"       
@@ -52,8 +60,7 @@ class OBSRemote(object):
             msg['message-id'] = "123123d"
             msg['request-type'] = "StartStopStreaming"
             #msg["preview-only"] = True
-            self.ws.send(json.dumps(msg))
-            self.streaming = True
+            response = self.ws.send(json.dumps(msg))
         return
 
     def stop_streaming(self):
@@ -63,6 +70,5 @@ class OBSRemote(object):
             msg['message-id'] = "123123d"
             msg['request-type'] = "StartStopStreaming"
             #msg["preview-only"] = True
-            self.ws.send(json.dumps(msg))
-            self.streaming = False
+            response = self.ws.send(json.dumps(msg))
         return
