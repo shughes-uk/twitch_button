@@ -2,6 +2,7 @@
 
 from time import sleep
 import thread
+import os
 from obsremote import OBSRemote
 from usbbuttons import AvrMediaButton
 
@@ -11,14 +12,14 @@ def callbk():
     buttonpressed = True
 
 if __name__ == '__main__':
-    x = OBSRemote("ws://192.168.1.107:4444")
-    x.start()
-    y = AvrMediaButton(callbk)
-    y.start()
-    old_streaming = False
-    y.turn_off()
-    print "Button Ready!"
     try:
+        x = OBSRemote("ws://192.168.1.107:4444")
+        x.start()
+        y = AvrMediaButton(callbk)
+        y.start()
+        old_streaming = False
+        y.turn_off()
+        print "Button Ready!"
         while True:
             if buttonpressed:
                 if x.streaming:
@@ -37,7 +38,14 @@ if __name__ == '__main__':
                 old_streaming = x.streaming
     except KeyboardInterrupt:
         pass
+    except IndexError:
+        print 'ERROR: Check button plugged in'
     finally:
-        x.stop()
-        y.turn_off()
-        y.stop()
+        try:
+            x.stop()
+            y.turn_off()
+            y.stop()
+        except:
+            pass
+    os.system("pause")
+    
