@@ -16,10 +16,12 @@ class Manager(object):
     def start(self):
         self.obsremote.start()
         self.button.start()
+        self.button.send_color(self.profiles[self.current_profile][1])
 
     def stop(self):
         self.obsremote.stop_streaming()
         self.obsremote.stop()
+        self.button.send_color((0,0,0))
         self.button.stop()
 
     def next_profile(self):
@@ -56,9 +58,10 @@ class Manager(object):
                 print "STARTING STREAM WITH PROFILE %s" %self.profiles[self.current_profile][0]
                 self.obsremote.set_profile(self.profiles[self.current_profile][0])
                 self.obsremote.start_streaming(preview=True)
-                self.state = 'waitunpressed'
+                self.state = 'waitunpressed'                
                 self.nextstate.append('streaming_idle')
                 self.nextstate.append('wait_streaming')
+                self.flash((255,0,0),(0,255,0),count=10)
         else:
             self.next_profile();
             self.button.send_color(self.profiles[self.current_profile][1])
@@ -94,6 +97,13 @@ class Manager(object):
 
         else:
             self.state = 'streaming_idle'
+
+    def flash(self,color1,color2,interval=0.2,count=5):
+        for x in range(0,count):
+            self.button.send_color(color1)
+            sleep(interval)
+            self.button.send_color(color2)
+
 
 if __name__ == '__main__':
     y = Manager()
