@@ -61,7 +61,7 @@ class Manager(object):
                 self.state = 'waitunpressed'                
                 self.nextstate.append('streaming_idle')
                 self.nextstate.append('wait_streaming')
-                self.flash((255,0,0),(0,255,0),count=10)
+                self.button.flash((255,0,0),(0,255,0),count=10)
         else:
             self.next_profile();
             self.button.send_color(self.profiles[self.current_profile][1])
