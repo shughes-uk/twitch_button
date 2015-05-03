@@ -37,7 +37,7 @@ class KeyboardButton(threading.Thread):
         self.pressed = False
         self.pressedTime = 0
         self.status_queue = []
-        
+        self.daemon = True
 
     def run(self):
         self.running = True
