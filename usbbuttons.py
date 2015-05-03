@@ -27,8 +27,8 @@ ALL_OFF = [[0b11110001, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 
 
 import pywinusb.hid as hid
-from time import time
-import pythoncom, pyHook , threading
+from time import time, sleep
+import pythoncom, pyHook , threading, win32event
 
 #used for debugging without access to a usb button mostly
 class KeyboardButton(threading.Thread):
@@ -39,14 +39,17 @@ class KeyboardButton(threading.Thread):
         self.status_queue = []
         self.daemon = True
 
+
     def run(self):
         self.running = True
         self.hm = pyHook.HookManager()
         self.hm.KeyDown = self.onkeyboardevent
         self.hm.KeyUp = self.onkeyboardevent
         self.hm.HookKeyboard()
+        event = win32event.CreateEvent(None, 0, 0, None)
         while self.running:
             pythoncom.PumpWaitingMessages()
+            win32event.MsgWaitForMultipleObjects([event],0,1,win32event.QS_ALLEVENTS)
 
     def stop(self):
         self.running = False
