@@ -103,7 +103,7 @@ class Manager(object):
                 self.nextstate.append('wait_stop_streaming')
             elif round(time() % 0.2,1) == 0 and self.button.current_color != (255,0,0):
                 self.button.send_color((255,0,0))
-            elif self.button.current_color != self.profiles[self.current_profile][1]:
+            elif round(time() % 0.2,1) != 0 and self.button.current_color != self.profiles[self.current_profile][1]:
                 self.button.send_color(self.profiles[self.current_profile][1])
         else:
             self.state = 'streaming_idle'
