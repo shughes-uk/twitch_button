@@ -5,7 +5,7 @@ from usbbuttons import KeyboardButton, UsbButtonButton
 
 class Manager(object):
     def __init__(self):
-        self.profiles = [("Maggie",(0,0,255)),("Amy",(255,255,0)),("Bryan",(255,0,255))]
+        self.profiles = [("Maggie",(0,0,255)),("Amy",(255,0,255)),("Bryan",(255,255,0))]
         self.state = 'idle'
         self.button = UsbButtonButton()
         self.obsremote = OBSRemote("ws://127.0.0.1:4444")
