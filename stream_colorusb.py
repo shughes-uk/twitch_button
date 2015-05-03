@@ -11,6 +11,7 @@ class Manager(object):
         self.obsremote = OBSRemote("ws://127.0.0.1:4444")
         self.current_profile = 0
         self.nextstate = []
+        self.current_color = (0,0,0)
         return
 
     def start(self):
@@ -86,9 +87,9 @@ class Manager(object):
         if not self.obsremote.streaming:
             self.state = 'idle'       
             self.button.send_color(self.profiles[self.current_profile][1])
-        elif round(time()) % 2 == 0:
+        elif round(time()) % 2 == 0 and self.button.current_color != self.profiles[self.current_profile][1]:
             self.button.send_color(self.profiles[self.current_profile][1])
-        else:
+        elif self.button.current_color != (0,255,0):
             self.button.send_color((0,255,0))
         
 
@@ -100,9 +101,9 @@ class Manager(object):
                 self.state = 'waitunpressed'
                 self.nextstate.append('idle')
                 self.nextstate.append('wait_stop_streaming')
-            elif round(time() % 0.2,1):
+            elif round(time() % 0.2,1) == 0 and self.button.current_color != (255,0,0):
                 self.button.send_color((255,0,0))
-            else:
+            elif self.button.current_color != self.profiles[self.current_profile][1]:
                 self.button.send_color(self.profiles[self.current_profile][1])
         else:
             self.state = 'streaming_idle'
