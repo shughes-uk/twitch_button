@@ -89,7 +89,7 @@ class Manager(object):
             self.button.send_color(self.profiles[self.current_profile][1])
         elif round(time()) % 2 == 0 and self.button.current_color != self.profiles[self.current_profile][1]:
             self.button.send_color(self.profiles[self.current_profile][1])
-        elif self.button.current_color != (0,255,0):
+        elif round(time()) % 2 == 1 and self.button.current_color != (0,255,0):
             self.button.send_color((0,255,0))
         
 
