@@ -7,8 +7,8 @@ CIRCLE_FLASH = [
     [0x22, 0x14, 0x00, 0x00, 0x06, 0x83, 0x00, 0x00],
     [0x22, 0x00, 0x00, 0x00, 0x06, 0x84, 0x00, 0x00],
     [0x42, 0x14, 0x00, 0x00, 0x06, 0x85, 0x00, 0x00],
-    [0x42, 0x00, 0x00, 0x00, 0x06, 0x86, 0x00, 0x00], 
-    [0x82, 0x14, 0x00, 0x00, 0x06, 0x87, 0x00, 0x00], 
+    [0x42, 0x00, 0x00, 0x00, 0x06, 0x86, 0x00, 0x00],
+    [0x82, 0x14, 0x00, 0x00, 0x06, 0x87, 0x00, 0x00],
     [0x82, 0x00, 0x00, 0x00, 0x06, 0x88, 0x00, 0x00],
 ]
 #GLOW PULSE
@@ -64,7 +64,7 @@ class KeyboardButton(threading.Thread):
     def send_color(self,rgb):
         print 'sent color , ' , rgb
 
-    def update(self):     
+    def update(self):
         return
 
     def onkeyboardevent(self,event):
@@ -95,7 +95,8 @@ class UsbButtonButton(object):
         self.report.send([0x00,0x02,0x00,0x00,0x00])
 
     def send_color(self,rgb):
-        self.report.send([0x00, 0x01, hex(rgb[0]), hex(rgb[1]), hex(rgb[2])])
+        print rgb
+        self.report.send([0x00, 0x01, rgb[0], rgb[1], rgb[2]])
 
     def start(self):
         filter = hid.HidDeviceFilter(vendor_id = 0xd209)
@@ -119,9 +120,11 @@ class UsbButtonButton(object):
             if data[1] == 1 and not self.pressed:
                 self.pressed = True
                 self.pressedTime = time()
+                print 'pressed'
             elif data[1] == 0 and self.pressed:
                 self.pressed = False
                 self.pressedTime = 0
+                print 'unpressed'
 
 
 class AvrMediaButton(object):
@@ -137,7 +140,7 @@ class AvrMediaButton(object):
         self.device.open()
         self.device.set_raw_data_handler(self.press_handler)
         self.target_usage = hid.get_full_usage_id(0xffa0, 0x02)
-        self.report = self.device.find_output_reports()[0] 
+        self.report = self.device.find_output_reports()[0]
         return
 
     def stop(self):
@@ -148,8 +151,8 @@ class AvrMediaButton(object):
 
     def press_handler(self,data):
         if data[2] == 1:
-            self.callback()         
-        #elif data[2] == 0:                       
+            self.callback()
+        #elif data[2] == 0:
         return
 
     def flash(self):
@@ -169,5 +172,3 @@ class AvrMediaButton(object):
         self.report[self.target_usage] = ALL_OFF[0]
         self.report.send()
         return
-
-

@@ -55,18 +55,17 @@ class OBSRemote(object):
 
     def start_streaming(self, preview=False):
         if self.streaming == False:
-            print "OBSREMOTE : Starting stream"       
+            print "OBSREMOTE : Starting stream"
             msg = {}
             msg['message-id'] = "123123d"
             msg['request-type'] = "StartStopStreaming"
             if preview:
                 msg["preview-only"] = True
             response = self.ws.send(json.dumps(msg))
-        return
 
     def stop_streaming(self, preview=False):
         if self.streaming:
-            print "OBSREMOTE : Stopping stream"        
+            print "OBSREMOTE : Stopping stream"
             msg = {}
             msg['message-id'] = "123123d"
             msg['request-type'] = "StartStopStreaming"

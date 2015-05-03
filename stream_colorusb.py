@@ -9,7 +9,7 @@ class Manager(object):
         self.state = 'idle'
         self.button = UsbButtonButton()
         self.obsremote = OBSRemote("ws://127.0.0.1:4444")
-        self.current_profile = 0        
+        self.current_profile = 0
         self.nextstate = []
         return
 
@@ -52,11 +52,11 @@ class Manager(object):
 
     def handle_profileselect(self):
         if self.button.pressed:
-            if self.button.get_elapsed_time() > 5:
+            if self.button.get_elapsed_time() > 2:
                 print "STARTING STREAM WITH PROFILE %s" %self.profiles[self.current_profile][0]
-                self.obsremote.set_profile(self.profiles[self.current_profile])
+                self.obsremote.set_profile(self.profiles[self.current_profile][0])
                 self.obsremote.start_streaming(preview=True)
-                self.state = 'waitunpressed'                    
+                self.state = 'waitunpressed'
                 self.nextstate.append('streaming_idle')
                 self.nextstate.append('wait_streaming')
         else:
@@ -88,7 +88,7 @@ class Manager(object):
             if self.button.get_elapsed_time() > 2:
                 print "STOPPING STREAMING"
                 self.obsremote.stop_streaming(preview=True)
-                self.state = 'waitunpressed'                    
+                self.state = 'waitunpressed'
                 self.nextstate.append('idle')
                 self.nextstate.append('wait_stop_streaming')
 
