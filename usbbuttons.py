@@ -115,7 +115,13 @@ class UsbButtonButton(object):
         return
 
     def raw_handler(self,data):
-        print data
+        if len(data) == 5:
+            if data[1] == 1 and not self.pressed:
+                self.pressed = True
+                self.pressedTime = time()
+            elif data[1] == 0 and self.pressed:
+                self.pressed = False
+                self.pressedTime = 0
 
 
 class AvrMediaButton(object):

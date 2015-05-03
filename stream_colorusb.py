@@ -5,9 +5,9 @@ from usbbuttons import KeyboardButton, UsbButtonButton
 
 class Manager(object):
     def __init__(self):
-        self.profiles = ["Maggie","Amy","Bryan"]
+        self.profiles = [("Maggie",(80,201,255)),("Amy",(255,115,100)),("Bryan",(0,255,0))]
         self.state = 'idle'
-        self.button = KeyboardButton()
+        self.button = UsbButtonButton()
         self.obsremote = OBSRemote("ws://127.0.0.1:4444")
         self.current_profile = 0        
         self.nextstate = []
@@ -53,15 +53,16 @@ class Manager(object):
     def handle_profileselect(self):
         if self.button.pressed:
             if self.button.get_elapsed_time() > 5:
-                print "STARTING STREAM WITH PROFILE %s" %self.profiles[self.current_profile]
+                print "STARTING STREAM WITH PROFILE %s" %self.profiles[self.current_profile][0]
                 self.obsremote.set_profile(self.profiles[self.current_profile])
-                self.obsremote.start_streaming()
+                self.obsremote.start_streaming(preview=True)
                 self.state = 'waitunpressed'                    
                 self.nextstate.append('streaming_idle')
                 self.nextstate.append('wait_streaming')
         else:
             self.next_profile();
-            print 'Selected next profile : %s' %self.profiles[self.current_profile]
+            self.button.send_color(self.profiles[self.current_profile][1])
+            print 'Selected next profile : %s' %self.profiles[self.current_profile][0]
             self.state = 'idle'
 
     def handle_waitunpressed(self):
@@ -86,7 +87,7 @@ class Manager(object):
         if self.button.pressed:
             if self.button.get_elapsed_time() > 2:
                 print "STOPPING STREAMING"
-                self.obsremote.stop_streaming()
+                self.obsremote.stop_streaming(preview=True)
                 self.state = 'waitunpressed'                    
                 self.nextstate.append('idle')
                 self.nextstate.append('wait_stop_streaming')
