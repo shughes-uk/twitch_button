@@ -1,4 +1,4 @@
-from time import sleep
+from time import sleep , time
 import thread
 from obsremote import OBSRemote
 from usbbuttons import KeyboardButton, UsbButtonButton
@@ -82,9 +82,15 @@ class Manager(object):
 
     def handle_streaming_idle(self):
         if self.button.pressed:
-            self.state = 'streaming_pressed'
+            self.state = 'streaming_pressed' 
         if not self.obsremote.streaming:
-            self.state = 'idle'
+            self.state = 'idle'       
+            self.button.send_color(self.profiles[self.current_profile][1])
+        elif round(time()) % 2 == 0:
+            self.button.send_color(self.profiles[self.current_profile][1])
+        else:
+            self.button.send_color((0,255,0))
+        
 
     def handle_streaming_pressed(self):
         if self.button.pressed:
@@ -94,7 +100,10 @@ class Manager(object):
                 self.state = 'waitunpressed'
                 self.nextstate.append('idle')
                 self.nextstate.append('wait_stop_streaming')
-
+            elif round(time() % 0.2,1):
+                self.button.send_color((255,0,0))
+            else:
+                self.button.send_color(self.profiles[self.current_profile][1])
         else:
             self.state = 'streaming_idle'
 
