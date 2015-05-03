@@ -96,7 +96,11 @@ class UsbButtonButton(object):
         self.report.send([0x00,0x02,0x00,0x00,0x00])
 
     def send_color(self,rgb):
-        self.report.send([0x00, 0x01, rgb[0], rgb[1], rgb[2]])
+        self.report.send([0,80,221,0,0])
+        self.report.send([0,rgb[0],rgb[1],rgb[2],rgb[0]])
+        self.report.send([0,rgb[1],rgb[2],0,0])
+        for x in range(1,14):
+            self.report.send([0,0,0,0,0])
         self.current_color = rgb
 
     def start(self):
