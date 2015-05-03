@@ -1,7 +1,7 @@
 from time import sleep
 import thread
 from obsremote import OBSRemote
-from usbbuttons import KeyboardButton
+from usbbuttons import KeyboardButton, UsbButtonButton
 
 class Manager(object):
     def __init__(self):
@@ -18,6 +18,7 @@ class Manager(object):
         self.button.start()
 
     def stop(self):
+        self.obsremote.stop_streaming()
         self.obsremote.stop()
         self.button.stop()
 
@@ -99,7 +100,7 @@ if __name__ == '__main__':
     try:
         y.start()
         while True:
-            sleep(0)
+            sleep(0.01)
             y.tick()
             if statecache != y.state:
                 print y.state
