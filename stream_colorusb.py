@@ -1,9 +1,5 @@
-from time import sleep , clock
-from msvcrt import kbhit
-import websocket
-import pywinusb.hid as hid
+from time import sleep
 import thread
-import json
 from obsremote import OBSRemote
 from usbbuttons import KeyboardButton
 
@@ -11,13 +7,19 @@ class Manager(object):
     def __init__(self):
         self.profiles = ["Maggie","Amy","Bryan"]
         self.state = 'idle'
-        self.streaming = False
         self.button = KeyboardButton()
         self.obsremote = OBSRemote("ws://127.0.0.1:4444")
-        self.obsremote.start()
         self.current_profile = 0        
         self.nextstate = []
         return
+
+    def start(self):
+        self.obsremote.start()
+        self.button.start()
+
+    def stop(self):
+        self.obsremote.stop()
+        self.button.stop()
 
     def next_profile(self):
         self.current_profile = (self.current_profile + 1) % len(self.profiles)
@@ -91,17 +93,11 @@ class Manager(object):
         else:
             self.state = 'streaming_idle'
 
-    
-
-    def start_stream(self):
-        pass
-
 if __name__ == '__main__':
     y = Manager()
-    y.button.daemon = True
-    y.button.start()
     statecache = ''
     try:
+        y.start()
         while True:
             sleep(0)
             y.tick()
@@ -111,5 +107,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         pass
     finally:
-        y.button.stop()
+        y.stop()
         pass
