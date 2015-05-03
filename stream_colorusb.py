@@ -103,6 +103,7 @@ class Manager(object):
             self.button.send_color(color1)
             sleep(interval)
             self.button.send_color(color2)
+            sleep(interval)
 
 
 if __name__ == '__main__':
