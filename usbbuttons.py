@@ -83,6 +83,7 @@ class UsbButtonButton(object):
         self.pressed = False
         self.pressedTime = 0
         self.status_queue = []
+        self.current_color = (0,0,0)
         return
 
     def get_elapsed_time(self):
@@ -95,8 +96,8 @@ class UsbButtonButton(object):
         self.report.send([0x00,0x02,0x00,0x00,0x00])
 
     def send_color(self,rgb):
-        print rgb
         self.report.send([0x00, 0x01, rgb[0], rgb[1], rgb[2]])
+        self.current_color = rgb
 
     def start(self):
         filter = hid.HidDeviceFilter(vendor_id = 0xd209)
