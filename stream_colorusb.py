@@ -98,12 +98,7 @@ class Manager(object):
         else:
             self.state = 'streaming_idle'
 
-    def flash(self,color1,color2,interval=0.2,count=5):
-        for x in range(0,count):
-            self.button.send_color(color1)
-            sleep(interval)
-            self.button.send_color(color2)
-            sleep(interval)
+    
 
 
 if __name__ == '__main__':
