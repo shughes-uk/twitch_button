@@ -1,4 +1,5 @@
 from time import sleep , time
+from datetime import datetime, timedelta
 import thread
 from obsremote import OBSRemote
 from usbbuttons import KeyboardButton, UsbButtonButton
@@ -12,6 +13,8 @@ class Manager(object):
         self.current_profile = 0
         self.nextstate = []
         self.current_color = (0,0,0)
+        self.highlights = []
+        self.starttime = datetime()
         return
 
     def start(self):
@@ -31,6 +34,9 @@ class Manager(object):
 
     def tick(self):
         self.button.update()
+        if self.obsremote.streaming and self.state not in ['streaming_idle', 'wait_stop_streaming', 'wait_streaming', 'waitunpressed', 'streaming_pressed']:
+            self.state = 'streaming_idle'
+            self.starttime = datetime.now()
         self.handle_state()
 
     def handle_state(self):
@@ -59,6 +65,7 @@ class Manager(object):
                 print "STARTING STREAM WITH PROFILE %s" %self.profiles[self.current_profile][0]
                 self.obsremote.set_profile(self.profiles[self.current_profile][0])
                 self.obsremote.start_streaming(preview=True)
+                self.starttime = datetime.now()
                 self.state = 'waitunpressed'                
                 self.nextstate.append('streaming_idle')
                 self.nextstate.append('wait_streaming')
@@ -71,19 +78,20 @@ class Manager(object):
 
     def handle_waitunpressed(self):
         if not self.button.pressed:
-                self.state = self.nextstate.pop()
+            self.state = self.nextstate.pop()
 
     def handle_wait_streaming(self):
-         if self.obsremote.streaming:
-                self.state = self.nextstate.pop()
+        if self.obsremote.streaming:
+            self.state = self.nextstate.pop()
 
     def handle_wait_stop_streaming(self):
-         if not self.obsremote.streaming:
-                self.state = self.nextstate.pop()
+         if not self.obsremote.streaming:    
+            self.state = self.nextstate.pop()
 
     def handle_streaming_idle(self):
         if self.button.pressed:
-            self.state = 'streaming_pressed' 
+            self.state = 'streaming_pressed'
+            self.button.send_color(self.button.send_color(self.profiles[self.current_profile][1]))
         if not self.obsremote.streaming:
             self.state = 'idle'       
             self.button.send_color(self.profiles[self.current_profile][1])
@@ -101,12 +109,17 @@ class Manager(object):
                 self.state = 'waitunpressed'
                 self.nextstate.append('idle')
                 self.nextstate.append('wait_stop_streaming')
-            elif round(time() % 0.2,1) == 0 and self.button.current_color != (255,0,0):
-                self.button.send_color((255,0,0))
-            elif round(time() % 0.2,1) != 0 and self.button.current_color != self.profiles[self.current_profile][1]:
-                self.button.send_color(self.profiles[self.current_profile][1])
+                #output highlight timestamps
+                if self.highlights:
+                    h_file = open("E:\stream_backups\%s\%s_highlights.txt" %(self.profiles[self.current_profile][0], self.starttime.strftime('%Y-%m-%d-%H-%M-%S')),'a')
+                    for highlight in self.highlights:
+                        h_file.write(str(timedelta(milliseconds=highlight)) + '\n')
+                    h_file.close()
+                    self.highlights = []
+                self.button.flash(self.profiles[self.current_profile][1],(255,0,0),count=10)
         else:
             self.state = 'streaming_idle'
+            self.highlights.append(self.obsremote.streamTime)
 
     
 
@@ -120,7 +133,7 @@ if __name__ == '__main__':
             sleep(0.01)
             y.tick()
             if statecache != y.state:
-                print y.state
+                print 'CurrentState: ' + y.state
                 statecache = y.state
     except KeyboardInterrupt:
         pass
