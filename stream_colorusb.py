@@ -14,7 +14,7 @@ class Manager(object):
         self.nextstate = []
         self.current_color = (0,0,0)
         self.highlights = []
-        self.starttime = datetime()
+        self.starttime = datetime.now()
         return
 
     def start(self):
