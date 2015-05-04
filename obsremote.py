@@ -4,6 +4,7 @@ class OBSRemote(object):
     def __init__(self,url):
         self.url = url
         self.streaming = False
+        self.streamTime = 0
 
     def start(self):
         #dothing
@@ -25,6 +26,8 @@ class OBSRemote(object):
             if 'streaming' in decoded:
                 self.streaming = decoded['streaming']
             elif 'update-type' in decoded:
+                if decoded['update-type'] == 'StreamStatus':
+                    self.streamTime = decoded['total-stream-time'] 
                 if decoded['update-type'] == "StreamStarting":
                     self.streaming = True
                 elif decoded['update-type'] == "StreamStopping":
