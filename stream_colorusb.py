@@ -93,7 +93,7 @@ class Manager(object):
     def handle_streaming_idle(self):
         if self.button.pressed:
             self.state = 'streaming_pressed'
-            self.button.send_color(self.button.send_color(self.profiles[self.current_profile][1]))
+            self.button.send_color(self.profiles[self.current_profile][1])
         if not self.obsremote.streaming:
             self.finish_stream()
             self.state = 'idle'       
