@@ -58,6 +58,8 @@ class Manager(object):
     def handle_idle(self):
         if self.button.pressed:
                 self.state = 'profileselect'
+        elif self.button.current_color != self.profiles[self.current_profile][1]:
+            self.button.send_color(self.profiles[self.current_profile][1])
 
     def handle_profileselect(self):
         if self.button.pressed:
@@ -93,6 +95,7 @@ class Manager(object):
             self.state = 'streaming_pressed'
             self.button.send_color(self.button.send_color(self.profiles[self.current_profile][1]))
         if not self.obsremote.streaming:
+            self.finish_stream()
             self.state = 'idle'       
             self.button.send_color(self.profiles[self.current_profile][1])
         elif round(time()) % 2 == 0 and self.button.current_color != self.profiles[self.current_profile][1]:
@@ -108,20 +111,20 @@ class Manager(object):
                 self.obsremote.stop_streaming(preview=True)
                 self.state = 'waitunpressed'
                 self.nextstate.append('idle')
-                self.nextstate.append('wait_stop_streaming')
-                #output highlight timestamps
-                if self.highlights:
-                    h_file = open("E:\stream_backups\%s\%s_highlights.txt" %(self.profiles[self.current_profile][0], self.starttime.strftime('%Y-%m-%d-%H-%M-%S')),'a')
-                    for highlight in self.highlights:
-                        h_file.write(str(timedelta(milliseconds=highlight)) + '\n')
-                    h_file.close()
-                    self.highlights = []
+                self.nextstate.append('wait_stop_streaming')               
+                self.finish_stream()
                 self.button.flash(self.profiles[self.current_profile][1],(255,0,0),count=10)
         else:
             self.state = 'streaming_idle'
             self.highlights.append(self.obsremote.streamTime)
 
-    
+    def finish_stream(self):
+        if self.highlights:
+            h_file = open("E:\stream_backups\%s\%s_highlights.txt" %(self.profiles[self.current_profile][0], self.starttime.strftime('%Y-%m-%d-%H-%M-%S')),'a')
+            for highlight in self.highlights:
+                h_file.write(str(timedelta(milliseconds=highlight)) + '\n')
+            h_file.close()
+            self.highlights = []
 
 
 if __name__ == '__main__':
