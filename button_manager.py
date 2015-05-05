@@ -38,7 +38,7 @@ class Manager(object):
                 sleep(0.01)
                 self.tick()
                 if statecache != self.state:
-                    logger.info('CurrentState: ' + y.state)
+                    self.logger.info('CurrentState: ' + y.state)
                     statecache = self.state
         except KeyboardInterrupt:
             pass
