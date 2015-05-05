@@ -1,8 +1,9 @@
 from time import sleep , time
 from datetime import datetime, timedelta
-import thread
+from argparse import ArgumentParser
 from obsremote import OBSRemote
-from usbbuttons import KeyboardButton, UsbButtonButton
+from usbbuttons import UsbButtonButton
+import logging
 
 class Manager(object):
     def __init__(self):
@@ -15,6 +16,7 @@ class Manager(object):
         self.current_color = (0,0,0)
         self.highlights = []
         self.starttime = datetime.now()
+        self.logger = logging.getLogger("Button_Manager")
         return
 
     def start(self):
@@ -128,6 +130,17 @@ class Manager(object):
 
 
 if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument("--obs", default="127.0.0.1",
+                        help="IP Address for OBS")
+    parser.add_argument("--button", default="usbbuttonbutton",
+                        help="Set type of USB Button")
+    parser.add_argument("--debug",
+                        action="store_const", dest="loglevel",const=logging.DEBUG,
+                        default=logging.WARNING,
+                        help="Enable debug messages")
+    args = parser.parse_args()
+    logging.basicConfig(level=args.loglevel)
     y = Manager()
     statecache = ''
     try:
