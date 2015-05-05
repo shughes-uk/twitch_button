@@ -170,6 +170,6 @@ if __name__ == '__main__':
                        default=False,
                        help="Preview stream only, useful for testing")
     args = parser.parse_args()
-    logging.basicConfig(level=args.loglevel)
+    logging.basicConfig(level=args.loglevel,format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",datefmt="%H:%M:%S")
     y = Manager()
     y.run()
