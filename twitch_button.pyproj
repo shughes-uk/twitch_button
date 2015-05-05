@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ef3a8de6-190f-48b1-b9e9-7aab4c3de7f1</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>stream_colorusb.py</StartupFile>
+    <StartupFile>button_manager.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -25,7 +25,7 @@
   <ItemGroup>
     <Compile Include="obsremote.py" />
     <Compile Include="stream_button.py" />
-    <Compile Include="stream_colorusb.py" />
+    <Compile Include="button_manager.py" />
     <Compile Include="usbbuttons.py" />
   </ItemGroup>
   <PropertyGroup>
