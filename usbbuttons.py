@@ -28,7 +28,7 @@ ALL_OFF = [[0b11110001, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 
 import pywinusb.hid as hid
 from time import time, sleep
-import pythoncom, pyHook , threading, win32event
+import pythoncom, pyHook , threading, win32event, logging
 
 #used for debugging without access to a usb button mostly
 class KeyboardButton(threading.Thread):
@@ -38,6 +38,7 @@ class KeyboardButton(threading.Thread):
         self.pressedTime = 0
         self.status_queue = []
         self.daemon = True
+        self.logger = logging.getLogger("Keyboard_button")
 
 
     def run(self):
@@ -80,10 +81,12 @@ class KeyboardButton(threading.Thread):
 
 class UsbButtonButton(object):
     def __init__(self):
+        self.logger = logging.getLogger("UsbButtonButton")
         self.pressed = False
         self.pressedTime = 0
         self.status_queue = []
         self.current_color = (0,0,0)
+        self.report = None
         return
 
     def get_elapsed_time(self):
@@ -96,6 +99,7 @@ class UsbButtonButton(object):
         self.report.send([0x00,0x02,0x00,0x00,0x00])
 
     def send_color(self,rgb):
+        self.logger.debug("Sending color R%i,G%i,B%i" %rgb)
         self.report.send([0,80,221,0,0])
         self.report.send([0,rgb[0],rgb[1],rgb[2],rgb[0]])
         self.report.send([0,rgb[1],rgb[2],0,0])
@@ -104,18 +108,21 @@ class UsbButtonButton(object):
         self.current_color = rgb
 
     def start(self):
+        self.logger.info("Searching for button")
         filter = hid.HidDeviceFilter(vendor_id = 0xd209)
-        self.hid_devices = filter.get_devices()
+        self.hid_devices = filter.get_devices()        
         for device in self.hid_devices:
             device.open()
             device.set_raw_data_handler(self.raw_handler)
             for report in device.find_feature_reports() + device.find_output_reports():
                 self.report = report
-                print 'got 1 report'
+                self.logger.debug("Found report and button")
+        if not self.hid_devices or self.report:
+            raise Exception("Couldn't find button or something is wrong")
         return
 
     def stop(self):
-        #stoppit
+        self.logger.info("Tidying up")
         for device in self.hid_devices:
             device.close()
         return
@@ -125,11 +132,11 @@ class UsbButtonButton(object):
             if data[1] == 1 and not self.pressed:
                 self.pressed = True
                 self.pressedTime = time()
-                print 'pressed'
+                self.logger.debug('pressed')
             elif data[1] == 0 and self.pressed:
                 self.pressed = False
                 self.pressedTime = 0
-                print 'unpressed'
+                self.logger.debug('unpressed')
     
     def flash(self,color1,color2,interval=0.2,count=5):
         for x in range(0,count):
@@ -141,11 +148,13 @@ class UsbButtonButton(object):
 
 class AvrMediaButton(object):
     def __init__(self,pressed_callback):
+        self.logger = logging.getLogger("AvrMediaButton")
+        self.logger.info("AvrMediaButton initializing")
         self.callback = pressed_callback
         return
 
     def start(self):
-        #init
+        self.logger.info("Searching for button")
         filter = hid.HidDeviceFilter(vendor_id = 1994, product_id = 38992)
         hid_device = filter.get_devices()
         self.device = hid_device[0]
@@ -153,34 +162,29 @@ class AvrMediaButton(object):
         self.device.set_raw_data_handler(self.press_handler)
         self.target_usage = hid.get_full_usage_id(0xffa0, 0x02)
         self.report = self.device.find_output_reports()[0]
+        self.logger.info("Found button")
         return
 
     def stop(self):
-        #stoppit
+        self.logger.info("Tidying up")
         self.turn_off()
         self.device.close()
         return
 
     def press_handler(self,data):
         if data[2] == 1:
+            self.logger.info("Button pressed")
             self.callback()
-        #elif data[2] == 0:
-        return
-
-    def flash(self):
-        #doflash
-        return
-
-    def glow(self):
-        #glow
         return
 
     def turn_on(self):
+        self.logger.info("LEDs ON")
         self.report[self.target_usage] = ALL_ON[0]
         self.report.send()
         return
 
     def turn_off(self):
+        self.logger.info("LEDs OFF")
         self.report[self.target_usage] = ALL_OFF[0]
         self.report.send()
         return

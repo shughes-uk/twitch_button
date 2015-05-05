@@ -2,33 +2,52 @@ from time import sleep , time
 from datetime import datetime, timedelta
 from argparse import ArgumentParser
 from obsremote import OBSRemote
-from usbbuttons import UsbButtonButton
+from usbbuttons import *
 import logging
 
 class Manager(object):
-    def __init__(self):
+    def __init__(self,obs_ip="127.0.0.1",button_type="usbbuttonbutton",preview_only=False):
+        self.logger = logging.getLogger("Button_Manager")
+        self.logger.info("Initializing")
         self.profiles = [("Maggie",(0,0,255)),("Amy",(255,0,255)),("Bryan",(255,255,0))]
         self.state = 'idle'
-        self.button = UsbButtonButton()
-        self.obsremote = OBSRemote("ws://127.0.0.1:4444")
+        if button_type == "usbbuttonbutton":
+            self.button = UsbButtonButton()
+        elif button_type == "avermedia":
+            self.button = AvrMediaButton()
+        elif button_type == "keyboard":
+            self.button = KeyboardButton()
+        self.obsremote = OBSRemote("ws://%s:4444" %obs_ip)
         self.current_profile = 0
         self.nextstate = []
         self.current_color = (0,0,0)
         self.highlights = []
         self.starttime = datetime.now()
-        self.logger = logging.getLogger("Button_Manager")
+        self.preview = preview_only
+        
         return
 
-    def start(self):
+    def run(self):
+        self.logger.info("Running")
         self.obsremote.start()
         self.button.start()
         self.button.send_color(self.profiles[self.current_profile][1])
-
-    def stop(self):
-        self.obsremote.stop_streaming()
-        self.obsremote.stop()
-        self.button.send_color((0,0,0))
-        self.button.stop()
+        statecache = ''
+        try:
+            while True:
+                sleep(0.01)
+                self.tick()
+                if statecache != self.state:
+                    logger.info('CurrentState: ' + y.state)
+                    statecache = self.state
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.logger.info("Shutting down")
+            self.obsremote.stop_streaming(self.preview)
+            self.obsremote.stop()
+            self.button.send_color((0,0,0))
+            self.button.stop()
 
     def next_profile(self):
         self.current_profile = (self.current_profile + 1) % len(self.profiles)
@@ -66,9 +85,9 @@ class Manager(object):
     def handle_profileselect(self):
         if self.button.pressed:
             if self.button.get_elapsed_time() > 2:
-                print "STARTING STREAM WITH PROFILE %s" %self.profiles[self.current_profile][0]
+                self.logger.info("Streaming starting with profile: %s" %self.profiles[self.current_profile][0])
                 self.obsremote.set_profile(self.profiles[self.current_profile][0])
-                self.obsremote.start_streaming(preview=True)
+                self.obsremote.start_streaming(self.preview)
                 self.starttime = datetime.now()
                 self.state = 'waitunpressed'                
                 self.nextstate.append('streaming_idle')
@@ -77,7 +96,7 @@ class Manager(object):
         else:
             self.next_profile();
             self.button.send_color(self.profiles[self.current_profile][1])
-            print 'Selected next profile : %s' %self.profiles[self.current_profile][0]
+            self.logger.info('Selected next profile : %s' %self.profiles[self.current_profile][0])
             self.state = 'idle'
 
     def handle_waitunpressed(self):
@@ -109,8 +128,8 @@ class Manager(object):
     def handle_streaming_pressed(self):
         if self.button.pressed:
             if self.button.get_elapsed_time() > 2:
-                print "STOPPING STREAMING"
-                self.obsremote.stop_streaming(preview=True)
+                self.logger.info("Stopping stream")
+                self.obsremote.stop_streaming(self.preview)
                 self.state = 'waitunpressed'
                 self.nextstate.append('idle')
                 self.nextstate.append('wait_stop_streaming')               
@@ -118,10 +137,12 @@ class Manager(object):
                 self.button.flash(self.profiles[self.current_profile][1],(255,0,0),count=10)
         else:
             self.state = 'streaming_idle'
+            self.logger.info("Highlight created @ %s" %self.obsremote.streamTime)
             self.highlights.append(self.obsremote.streamTime)
 
     def finish_stream(self):
         if self.highlights:
+            self.logger.info("Writing highlight times to file")
             h_file = open("H:\stream backups\%s\%s_highlights.txt" %(self.profiles[self.current_profile][0], self.starttime.strftime('%Y-%m-%d-%H-%M-%S')),'a')
             for highlight in self.highlights:
                 h_file.write(str(timedelta(milliseconds=highlight)) + '\n')
@@ -131,28 +152,24 @@ class Manager(object):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--obs", default="127.0.0.1",
+    parser.add_argument("--obsip", "-o",
+                        default="127.0.0.1",
                         help="IP Address for OBS")
-    parser.add_argument("--button", default="usbbuttonbutton",
+    parser.add_argument("--button", "-b",
+                        default="usbbuttonbutton",
                         help="Set type of USB Button")
-    parser.add_argument("--debug",
+    parser.add_argument("--debug", "-d",
                         action="store_const", dest="loglevel",const=logging.DEBUG,
                         default=logging.WARNING,
                         help="Enable debug messages")
+    parser.add_argument("--verbose", "-v",
+                       action="store_const", dest="loglevel", const=logging.INFO,
+                       help="Enable messages that might be useful but not ALL THE MESSAGES")
+    parser.add_argument("--preview_only", "-p",
+                       action="store_true",
+                       default=False,
+                       help="Preview stream only, useful for testing")
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel)
     y = Manager()
-    statecache = ''
-    try:
-        y.start()
-        while True:
-            sleep(0.01)
-            y.tick()
-            if statecache != y.state:
-                print 'CurrentState: ' + y.state
-                statecache = y.state
-    except KeyboardInterrupt:
-        pass
-    finally:
-        y.stop()
-        pass
+    y.run()

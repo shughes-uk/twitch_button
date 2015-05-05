@@ -1,13 +1,14 @@
-import websocket, thread, json
+import websocket, thread, json, logging
 
 class OBSRemote(object):
     def __init__(self,url):
+        self.logger = logging.getLogger("OBSRemote")
         self.url = url
         self.streaming = False
         self.streamTime = 0
 
     def start(self):
-        #dothing
+        self.logger.info("Opening comms with OBS")
         self.ws = websocket.WebSocketApp(self.url,
                               on_message = self.on_message,
                               on_error = self.on_error,
@@ -16,13 +17,13 @@ class OBSRemote(object):
         thread.start_new_thread( self.ws.run_forever, () )
 
     def stop(self):
-        #stopthing
+        self.logger.info("Closing comms with OBS")
         self.ws.close()
 
     def on_message(self,ws,msg):
-        #recv msg
         try:
             decoded = json.loads(msg)
+            self.logger.info("Received: " + str(decoded))
             if 'streaming' in decoded:
                 self.streaming = decoded['streaming']
             elif 'update-type' in decoded:
@@ -33,23 +34,20 @@ class OBSRemote(object):
                 elif decoded['update-type'] == "StreamStopping":
                     self.streaming = False
         except Exception, E:
-            print 'Bad thing happened parsing obsremote message'
-            print E
+            self.logger.warn('Bad thing happened parsing obsremote message')
+            self.logger.warn(str(E))
         return
 
     def on_error(self,ws,error):
-        #error
-        print 'OBSRemoteError'
-        print error
+        self.logger.warn('Error ' + str(error))
         return
 
     def on_close(self,ws):
-        #closed
-        print 'OBSRemote Socket closed'
+        self.logger.info('Socket closed')
         return
 
     def set_profile(self,name):
-        print "Setting profile to : %s" %name
+        self.logger.info("Setting profile to : %s" %name)
         msg = {}
         msg['message-id'] = 'ffff34234'
         msg['request-type'] = "SetProfile"
@@ -58,7 +56,7 @@ class OBSRemote(object):
 
     def start_streaming(self, preview=False):
         if self.streaming == False:
-            print "OBSREMOTE : Starting stream"
+            self.logger.info("Sending StartStream")
             msg = {}
             msg['message-id'] = "123123d"
             msg['request-type'] = "StartStopStreaming"
@@ -68,7 +66,7 @@ class OBSRemote(object):
 
     def stop_streaming(self, preview=False):
         if self.streaming:
-            print "OBSREMOTE : Stopping stream"
+            self.logger.info("Sending StopStream")
             msg = {}
             msg['message-id'] = "123123d"
             msg['request-type'] = "StartStopStreaming"
