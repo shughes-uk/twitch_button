@@ -34,6 +34,7 @@ class Manager(object):
         self.button.send_color(self.profiles[self.current_profile][1])
         statecache = ''
         try:
+            self.logger.info("Everything seems ready to go!")
             while True:
                 sleep(0.01)
                 self.tick()
