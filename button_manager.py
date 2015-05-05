@@ -25,7 +25,6 @@ class Manager(object):
         self.highlights = []
         self.starttime = datetime.now()
         self.preview = preview_only
-        
         return
 
     def run(self):

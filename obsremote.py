@@ -23,7 +23,7 @@ class OBSRemote(object):
     def on_message(self,ws,msg):
         try:
             decoded = json.loads(msg)
-            self.logger.info("Received: " + str(decoded))
+            #self.logger.info("Received: " + str(decoded))
             if 'streaming' in decoded:
                 self.streaming = decoded['streaming']
             elif 'update-type' in decoded:
