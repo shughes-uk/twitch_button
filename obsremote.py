@@ -23,16 +23,16 @@ class OBSRemote(object):
     def on_message(self,ws,msg):
         try:
             decoded = json.loads(msg)
-            #self.logger.info("Received: " + str(decoded))
-            if 'streaming' in decoded:
-                self.streaming = decoded['streaming']
-            elif 'update-type' in decoded:
+            #self.logger.debug("Received: " + str(decoded))
+            if 'update-type' in decoded:
                 if decoded['update-type'] == 'StreamStatus':
-                    self.streamTime = decoded['total-stream-time'] 
-                if decoded['update-type'] == "StreamStarting":
+                    self.streamTime = decoded['total-stream-time']
+                    self.streaming = decoded['streaming'] 
+                elif decoded['update-type'] == "StreamStarting":
                     self.streaming = True
                 elif decoded['update-type'] == "StreamStopping":
                     self.streaming = False
+
         except Exception, E:
             self.logger.warn('Bad thing happened parsing obsremote message')
             self.logger.warn(str(E))
