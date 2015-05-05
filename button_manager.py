@@ -8,6 +8,7 @@ import logging
 class Manager(object):
     def __init__(self,obs_ip="127.0.0.1",button_type="usbbuttonbutton",preview_only=False):
         self.logger = logging.getLogger("Button_Manager")
+        self.logger.info("Args  obs_ip = %s button_type = %s preview = %s" %(obs_ip,button_type,str(preview_only)))
         self.logger.info("Initializing")
         self.profiles = [("Maggie",(0,0,255)),("Amy",(255,0,255)),("Bryan",(255,255,0))]
         self.state = 'idle'
@@ -155,9 +156,11 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--obsip", "-o",
                         default="127.0.0.1",
+                        dest="obs_ip",
                         help="IP Address for OBS")
     parser.add_argument("--button", "-b",
                         default="usbbuttonbutton",
+                        dest="button",
                         help="Set type of USB Button")
     parser.add_argument("--debug", "-d",
                         action="store_const", dest="loglevel",const=logging.DEBUG,
@@ -168,9 +171,10 @@ if __name__ == '__main__':
                        help="Enable messages that might be useful but not ALL THE MESSAGES")
     parser.add_argument("--preview_only", "-p",
                        action="store_true",
+                       dest="preview",
                        default=False,
                        help="Preview stream only, useful for testing")
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel,format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",datefmt="%H:%M:%S")
-    y = Manager()
+    y = Manager(obs_ip=args.obs_ip,button_type=args.button,preview_only=args.preview)
     y.run()
