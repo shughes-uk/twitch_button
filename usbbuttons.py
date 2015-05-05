@@ -117,7 +117,7 @@ class UsbButtonButton(object):
             for report in device.find_feature_reports() + device.find_output_reports():
                 self.report = report
                 self.logger.debug("Found report and button")
-        if not self.hid_devices or self.report:
+        if not self.hid_devices or not self.report:
             raise Exception("Couldn't find button or something is wrong")
         return
 
