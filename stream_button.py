@@ -5,6 +5,7 @@ import thread
 import os
 from obsremote import OBSRemote
 from usbbuttons import AvrMediaButton
+import logging
 
 buttonpressed = False
 def callbk():
@@ -12,6 +13,8 @@ def callbk():
     buttonpressed = True
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO,format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",datefmt="%H:%M:%S")
+    logger = logging.getLogger("Main")
     try:
         x = OBSRemote("ws://192.168.1.107:4444")
         x.start()
@@ -19,7 +22,7 @@ if __name__ == '__main__':
         y.start()
         old_streaming = False
         y.turn_off()
-        print "Button Ready!"
+        logger.info("Button Ready!")
         while True:
             if buttonpressed:
                 if x.streaming:
@@ -30,16 +33,16 @@ if __name__ == '__main__':
                     buttonpressed = False
             if old_streaming != x.streaming:
                 if x.streaming:
-                    print "Now streaming"
+                    logger.info("Now streaming")
                     y.turn_on()
                 else:
                     y.turn_off()
-                    print "Stream ended"
+                    logger.info("Stream ended")
                 old_streaming = x.streaming
     except KeyboardInterrupt:
         pass
     except IndexError:
-        print 'ERROR: Check button plugged in'
+        logger.warn('ERROR: Check button plugged in')
     finally:
         try:
             x.stop()
