@@ -10,7 +10,7 @@ class Manager(object):
         self.logger = logging.getLogger("Button_Manager")
         self.logger.info("Args  obs_ip = %s button_type = %s preview = %s" %(obs_ip,button_type,str(preview_only)))
         self.logger.info("Initializing")
-        self.profiles = [("Maggie",(0,0,255)),("Amy",(255,0,255)),("Bryan",(255,255,0))]
+        self.profiles = [("Maggie",(0,0,255)),("Amy",(255,0,255)),("Bryan",(255,255,0)),("Youtube",(255,128,0))]
         self.state = 'idle'
         if button_type == "usbbuttonbutton":
             self.button = UsbButtonButton()
