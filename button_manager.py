@@ -56,12 +56,17 @@ class Manager(object):
 
     def tick(self):
         self.button.update()
-        if self.obsremote.streaming and self.state not in ['streaming_idle', 'wait_stop_streaming', 'wait_streaming', 'waitunpressed', 'streaming_pressed']:
+        if not self.obsremote.connected and self.state != 'error':
+            self.state = 'error'
+            self.logger.warn("OBSRemote not connected, will retry in aprox 20 seconds")
+        elif self.obsremote.streaming and self.state not in ['streaming_idle', 'wait_stop_streaming', 'wait_streaming', 'waitunpressed', 'streaming_pressed']:
             self.state = 'streaming_idle'
             self.starttime = datetime.now()
         self.handle_state()
 
     def handle_state(self):
+        if self.state == 'error':
+            self.handle_error()
         if self.state == 'idle':
             self.handle_idle()
         elif self.state == 'profileselect':
@@ -76,6 +81,16 @@ class Manager(object):
             self.handle_streaming_idle()
         elif self.state == 'streaming_pressed':
             self.handle_streaming_pressed()
+
+    def handle_error(self):
+        if self.obsremote.connected:
+            self.state = 'idle'
+        else:
+            self.obsremote.start()
+            if round(time()) % 2 == 0 and self.button.current_color != (0,0,0):
+                self.button.send_color((0,0,0))
+            elif round(time()) % 2 == 1 and self.button.current_color != (255,0,0):
+                self.button.send_color((255,0,0))
 
     def handle_idle(self):
         if self.button.pressed:
@@ -160,7 +175,7 @@ if __name__ == '__main__':
     parser.add_argument("--button", "-b",
                         default="usbbuttonbutton",
                         dest="button",
-                        help="Set type of USB Button")
+                        help="Set type of USB Button, valid values are :  usbbuttonbutton , avermedia , keyboard")
     parser.add_argument("--debug", "-d",
                         action="store_const", dest="loglevel",const=logging.DEBUG,
                         default=logging.WARNING,

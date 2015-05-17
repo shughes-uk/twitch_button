@@ -47,6 +47,7 @@ class KeyboardButton(threading.Thread):
         self.hm.KeyDown = self.onkeyboardevent
         self.hm.KeyUp = self.onkeyboardevent
         self.hm.HookKeyboard()
+        self.current_color = (0,0,0)
         event = win32event.CreateEvent(None, 0, 0, None)
         while self.running:
             pythoncom.PumpWaitingMessages()
@@ -63,7 +64,8 @@ class KeyboardButton(threading.Thread):
             return 0
 
     def send_color(self,rgb):
-        print 'sent color , ' , rgb
+        self.logger.debug("Sending color R%i,G%i,B%i" %rgb)
+        self.current_color = rgb
 
     def update(self):
         return
@@ -76,6 +78,7 @@ class KeyboardButton(threading.Thread):
             self.pressed = False
             self.pressedTime = 0
         return True
+    
 
 
 

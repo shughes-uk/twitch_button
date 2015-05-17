@@ -1,4 +1,4 @@
-import websocket, thread, json, logging
+import websocket, thread, json, logging, time
 
 class OBSRemote(object):
     def __init__(self,url):
@@ -6,15 +6,20 @@ class OBSRemote(object):
         self.url = url
         self.streaming = False
         self.streamTime = 0
+        self.connected = True
+        self.last_connect_attempt = 0
 
     def start(self):
-        self.logger.info("Opening comms with OBS")
-        self.ws = websocket.WebSocketApp(self.url,
-                              on_message = self.on_message,
-                              on_error = self.on_error,
-                              on_close = self.on_close,
-                              subprotocols=["obsapi"])
-        thread.start_new_thread( self.ws.run_forever, () )
+        if time.time() - self.last_connect_attempt > 20:
+            self.last_connect_attempt = time.time()
+            self.logger.info("Attempting to open comms with OBS")
+            self.ws = websocket.WebSocketApp(self.url,
+                                  on_message = self.on_message,
+                                  on_error = self.on_error,
+                                  on_close = self.on_close,
+                                  subprotocols=["obsapi"])
+            thread.start_new_thread( self.ws.run_forever, () )
+            self.connected = True
 
     def stop(self):
         self.logger.info("Closing comms with OBS")
@@ -39,11 +44,16 @@ class OBSRemote(object):
         return
 
     def on_error(self,ws,error):
-        self.logger.warn('Error ' + str(error))
+        if error.errno == 10061:
+            self.logger.warn("Error, connection to OBS refused, check OBS is running.")
+        else:
+            self.logger.warn('Error ' + str(error))
         return
 
     def on_close(self,ws):
         self.logger.info('Socket closed')
+        self.connected = False
+        self.streaming = False
         return
 
     def set_profile(self,name):
