@@ -7,11 +7,8 @@ class OBSRemote(object):
         self.streaming = False
         self.streamTime = 0
         self.connected = True
-        self.last_connect_attempt = 0
 
     def start(self):
-        if time.time() - self.last_connect_attempt > 20:
-            self.last_connect_attempt = time.time()
             self.logger.info("Attempting to open comms with OBS")
             self.ws = websocket.WebSocketApp(self.url,
                                   on_message = self.on_message,

@@ -4,6 +4,25 @@ from argparse import ArgumentParser
 from obsremote import OBSRemote
 from usbbuttons import *
 import logging
+from win32event import CreateMutex
+from win32api import CloseHandle, GetLastError
+from winerror import ERROR_ALREADY_EXISTS
+
+class singleinstance:
+    """ Limits application to single instance """
+
+    def __init__(self):
+        self.mutexname = "twitch_button_mutex"
+        self.mutex = CreateMutex(None, False, self.mutexname)
+        self.lasterror = GetLastError()
+    
+    def alreadyrunning(self):
+        return (self.lasterror == ERROR_ALREADY_EXISTS)
+        
+    def __del__(self):
+        if self.mutex:
+            CloseHandle(self.mutex)
+
 
 class Manager(object):
     def __init__(self,obs_ip="127.0.0.1",button_type="usbbuttonbutton",preview_only=False):
@@ -25,6 +44,7 @@ class Manager(object):
         self.highlights = []
         self.starttime = datetime.now()
         self.preview = preview_only
+        self.last_recover_attempt = 0
         return
 
     def run(self):
@@ -34,7 +54,6 @@ class Manager(object):
         self.button.send_color(self.profiles[self.current_profile][1])
         statecache = ''
         try:
-            self.logger.info("Everything seems ready to go!")
             while True:
                 sleep(0.01)
                 self.tick()
@@ -54,14 +73,17 @@ class Manager(object):
         self.current_profile = (self.current_profile + 1) % len(self.profiles)
         return self.current_profile
 
-    def tick(self):
-        self.button.update()
-        if not self.obsremote.connected and self.state != 'error':
+    def tick(self):        
+        if not self.button.connected and self.state != 'error':
+            self.state = 'error'
+            self.logger.warn("Button appears to be disconnected , will try to find it again in 10 seconds")
+        elif not self.obsremote.connected and self.state != 'error':
             self.state = 'error'
             self.logger.warn("OBSRemote not connected, will retry in aprox 20 seconds")
         elif self.obsremote.streaming and self.state not in ['streaming_idle', 'wait_stop_streaming', 'wait_streaming', 'waitunpressed', 'streaming_pressed']:
             self.state = 'streaming_idle'
             self.starttime = datetime.now()
+        self.button.update()
         self.handle_state()
 
     def handle_state(self):
@@ -83,14 +105,20 @@ class Manager(object):
             self.handle_streaming_pressed()
 
     def handle_error(self):
-        if self.obsremote.connected:
+        if self.obsremote.connected and self.button.connected:
             self.state = 'idle'
-        else:
-            self.obsremote.start()
-            if round(time()) % 2 == 0 and self.button.current_color != (0,0,0):
-                self.button.send_color((0,0,0))
-            elif round(time()) % 2 == 1 and self.button.current_color != (255,0,0):
-                self.button.send_color((255,0,0))
+        if time() - self.last_recover_attempt > 20:
+            self.logger.warn("Attempting recovery")
+            self.last_recover_attempt = time()
+            if not self.obsremote.connected:
+                self.obsremote.start()
+                if self.button.connected:
+                    if round(time()) % 2 == 0 and self.button.current_color != (0,0,0):
+                        self.button.send_color((0,0,0))
+                    elif round(time()) % 2 == 1 and self.button.current_color != (255,0,0):
+                        self.button.send_color((255,0,0))
+            if not self.button.connected:
+                self.button.start()
 
     def handle_idle(self):
         if self.button.pressed:
@@ -190,5 +218,9 @@ if __name__ == '__main__':
                        help="Preview stream only, useful for testing")
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel,format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",datefmt="%H:%M:%S")
+    instance = singleinstance()
+    if instance.alreadyrunning():
+        logging.fatal("Can't run multiple instances of this script!")
+        exit(0)
     y = Manager(obs_ip=args.obs_ip,button_type=args.button,preview_only=args.preview)
     y.run()

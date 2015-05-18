@@ -90,6 +90,8 @@ class UsbButtonButton(object):
         self.status_queue = []
         self.current_color = (0,0,0)
         self.report = None
+        self.device = None
+        self.connected = False
         return
 
     def get_elapsed_time(self):
@@ -99,16 +101,30 @@ class UsbButtonButton(object):
             return 0
 
     def update(self):
-        self.report.send([0x00,0x02,0x00,0x00,0x00])
+        if self.device:
+            if not self.device.is_plugged():
+                self.connected = False
+                self.report = None
+                self.device = None
+                self.logger.warn("Usb Button possibly unplugged")
+                return
+            self.report.send([0x00,0x02,0x00,0x00,0x00])
 
     def send_color(self,rgb):
-        self.logger.debug("Sending color R%i,G%i,B%i" %rgb)
-        self.report.send([0,80,221,0,0])
-        self.report.send([0,rgb[0],rgb[1],rgb[2],rgb[0]])
-        self.report.send([0,rgb[1],rgb[2],0,0])
-        for x in range(1,14):
-            self.report.send([0,0,0,0,0])
-        self.current_color = rgb
+        if self.device:
+            if not self.device.is_plugged():
+                self.connected = False
+                self.report = None
+                self.device = None
+                self.logger.warn("Usb Button possibly unplugged")
+                return
+            self.logger.debug("Sending color R%i,G%i,B%i" %rgb)
+            self.report.send([0,80,221,0,0])
+            self.report.send([0,rgb[0],rgb[1],rgb[2],rgb[0]])
+            self.report.send([0,rgb[1],rgb[2],0,0])
+            for x in range(1,14):
+                self.report.send([0,0,0,0,0])
+            self.current_color = rgb
 
     def start(self):
         self.logger.info("Searching for button")
@@ -119,15 +135,18 @@ class UsbButtonButton(object):
             device.set_raw_data_handler(self.raw_handler)
             for report in device.find_feature_reports() + device.find_output_reports():
                 self.report = report
+                self.device = device
                 self.logger.debug("Found report and button")
+                self.connected = True
         if not self.hid_devices or not self.report:
-            raise Exception("Couldn't find button or something is wrong")
+            self.logger.warn("Couldn't find button or something is wrong")
         return
 
     def stop(self):
         self.logger.info("Tidying up")
         for device in self.hid_devices:
             device.close()
+        self.connected = False
         return
 
     def raw_handler(self,data):
@@ -142,11 +161,18 @@ class UsbButtonButton(object):
                 self.logger.debug('unpressed')
     
     def flash(self,color1,color2,interval=0.2,count=5):
-        for x in range(0,count):
-            self.send_color(color1)
-            sleep(interval)
-            self.send_color(color2)
-            sleep(interval)
+        if self.device:
+            if not self.device.is_plugged():
+                self.connected = False
+                self.report = None
+                self.device = None
+                self.logger.warn("Usb Button possibly unplugged")
+                return
+            for x in range(0,count):
+                self.send_color(color1)
+                sleep(interval)
+                self.send_color(color2)
+                sleep(interval)
 
 
 class AvrMediaButton(object):
