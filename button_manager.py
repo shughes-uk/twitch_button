@@ -187,7 +187,7 @@ class Manager(object):
     def finish_stream(self):
         if self.highlights:
             self.logger.info("Writing highlight times to file")
-            h_file = open("H:\stream backups\%s\%s_highlights.txt" %(self.profiles[self.current_profile][0], self.starttime.strftime('%Y-%m-%d-%H%M-%S')),'a')
+            h_file = open("E:\Stream_archives\%s_highlights.txt"%(self.starttime.strftime('%Y-%m-%d-%H%M-%S')),'a')
             for highlight in self.highlights:
                 h_file.write(str(timedelta(milliseconds=highlight)) + '\n')
             h_file.close()
