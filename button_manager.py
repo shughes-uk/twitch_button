@@ -85,6 +85,7 @@ class Manager(object):
         elif self.obsremote.streaming and self.state not in ['streaming_idle', 'wait_stop_streaming', 'wait_streaming', 'waitunpressed', 'streaming_pressed']:
             self.state = 'streaming_idle'
             self.starttime = datetime.now()
+            self.tape.displayColor(0, 255, 0)
         self.button.update()
         self.handle_state()
 
