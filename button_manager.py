@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from argparse import ArgumentParser
 from obsremote import OBSRemote
 from usbbuttons import *
+from BlinkyTape import BlinkyTape
 import logging
 from win32event import CreateMutex
 from win32api import CloseHandle, GetLastError
@@ -15,10 +16,10 @@ class singleinstance:
         self.mutexname = "twitch_button_mutex"
         self.mutex = CreateMutex(None, False, self.mutexname)
         self.lasterror = GetLastError()
-    
+
     def alreadyrunning(self):
         return (self.lasterror == ERROR_ALREADY_EXISTS)
-        
+
     def __del__(self):
         if self.mutex:
             CloseHandle(self.mutex)
@@ -45,6 +46,7 @@ class Manager(object):
         self.starttime = datetime.now()
         self.preview = preview_only
         self.last_recover_attempt = 0
+        self.tape = BlinkyTape("COM3")
         return
 
     def run(self):
@@ -73,7 +75,7 @@ class Manager(object):
         self.current_profile = (self.current_profile + 1) % len(self.profiles)
         return self.current_profile
 
-    def tick(self):        
+    def tick(self):
         if not self.button.connected and self.state != 'error':
             self.state = 'error'
             self.logger.warn("Button appears to be disconnected , will try to find it again in 10 seconds")
@@ -133,7 +135,7 @@ class Manager(object):
                 self.obsremote.set_profile(self.profiles[self.current_profile][0])
                 self.obsremote.start_streaming(self.preview)
                 self.starttime = datetime.now()
-                self.state = 'waitunpressed'                
+                self.state = 'waitunpressed'
                 self.nextstate.append('streaming_idle')
                 self.nextstate.append('wait_streaming')
                 self.button.flash((255,0,0),(0,255,0),count=10)
@@ -149,10 +151,12 @@ class Manager(object):
 
     def handle_wait_streaming(self):
         if self.obsremote.streaming:
+            self.tape.displayColor(0, 255, 0)
             self.state = self.nextstate.pop()
 
     def handle_wait_stop_streaming(self):
-         if not self.obsremote.streaming:    
+         if not self.obsremote.streaming:
+            self.tape.displayColor(0, 0, 0)
             self.state = self.nextstate.pop()
 
     def handle_streaming_idle(self):
@@ -161,13 +165,13 @@ class Manager(object):
             self.button.send_color(self.profiles[self.current_profile][1])
         if not self.obsremote.streaming:
             self.finish_stream()
-            self.state = 'idle'       
+            self.state = 'idle'
             self.button.send_color(self.profiles[self.current_profile][1])
         elif round(time()) % 2 == 0 and self.button.current_color != self.profiles[self.current_profile][1]:
             self.button.send_color(self.profiles[self.current_profile][1])
         elif round(time()) % 2 == 1 and self.button.current_color != (0,255,0):
             self.button.send_color((0,255,0))
-        
+
 
     def handle_streaming_pressed(self):
         if self.button.pressed:
@@ -176,7 +180,7 @@ class Manager(object):
                 self.obsremote.stop_streaming(self.preview)
                 self.state = 'waitunpressed'
                 self.nextstate.append('idle')
-                self.nextstate.append('wait_stop_streaming')               
+                self.nextstate.append('wait_stop_streaming')
                 self.finish_stream()
                 self.button.flash(self.profiles[self.current_profile][1],(255,0,0),count=10)
         else:
