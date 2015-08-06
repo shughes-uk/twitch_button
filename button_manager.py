@@ -6,7 +6,6 @@ from obsremote import OBSRemote
 from BlinkyTape import BlinkyTape
 import logging
 from pprint import pformat
-from twitch_handler import TwitchHandler
 if platform.system() == "Windows":
     from win32event import CreateMutex
     from win32api import CloseHandle, GetLastError
