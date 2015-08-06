@@ -119,7 +119,7 @@ class UsbButtonButton(object):
                 self.device = None
                 self.logger.warn("Usb Button possibly unplugged")
                 return
-            self.logger.debug("Sending color R%i,G%i,B%i" %rgb)
+            self.logger.debug("Sending color R%i,G%i,B%i" %(rgb[0], rgb[1], rgb[2]))
             self.report.send([0,80,221,0,0])
             self.report.send([0,rgb[0],rgb[1],rgb[2],rgb[0]])
             self.report.send([0,rgb[1],rgb[2],0,0])
