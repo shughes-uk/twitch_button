@@ -1,3 +1,4 @@
+
 #Led Sequences for Avermedia Button!
 #FLASH CIRCLE
 CIRCLE_FLASH = [
@@ -25,7 +26,7 @@ ALL_ON = [[0b11110001, 0x23, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 ALL_OFF = [[0b11110001, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 
 
-
+import platform
 import pywinusb.hid as hid
 from time import time, sleep
 import pythoncom, pyHook , threading, win32event, logging
@@ -78,7 +79,7 @@ class KeyboardButton(threading.Thread):
             self.pressed = False
             self.pressedTime = 0
         return True
-    
+
 
 
 
@@ -118,7 +119,7 @@ class UsbButtonButton(object):
                 self.device = None
                 self.logger.warn("Usb Button possibly unplugged")
                 return
-            self.logger.debug("Sending color R%i,G%i,B%i" %rgb)
+            self.logger.debug("Sending color R%i,G%i,B%i" %(rgb[0], rgb[1], rgb[2]))
             self.report.send([0,80,221,0,0])
             self.report.send([0,rgb[0],rgb[1],rgb[2],rgb[0]])
             self.report.send([0,rgb[1],rgb[2],0,0])
@@ -129,7 +130,7 @@ class UsbButtonButton(object):
     def start(self):
         self.logger.info("Searching for button")
         filter = hid.HidDeviceFilter(vendor_id = 0xd209)
-        self.hid_devices = filter.get_devices()        
+        self.hid_devices = filter.get_devices()
         for device in self.hid_devices:
             device.open()
             device.set_raw_data_handler(self.raw_handler)
@@ -159,7 +160,7 @@ class UsbButtonButton(object):
                 self.pressed = False
                 self.pressedTime = 0
                 self.logger.debug('unpressed')
-    
+
     def flash(self,color1,color2,interval=0.2,count=5):
         if self.device:
             if not self.device.is_plugged():

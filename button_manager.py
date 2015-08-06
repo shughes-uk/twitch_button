@@ -1,13 +1,17 @@
 from time import sleep , time
 from datetime import datetime, timedelta
 from argparse import ArgumentParser
+import os, json, platform
 from obsremote import OBSRemote
-from usbbuttons import *
 from BlinkyTape import BlinkyTape
 import logging
-from win32event import CreateMutex
-from win32api import CloseHandle, GetLastError
-from winerror import ERROR_ALREADY_EXISTS
+from pprint import pformat
+if platform.system() == "Windows":
+    from win32event import CreateMutex
+    from win32api import CloseHandle, GetLastError
+    from winerror import ERROR_ALREADY_EXISTS
+    from usbbuttons import *
+
 
 class singleinstance:
     """ Limits application to single instance """
@@ -26,19 +30,20 @@ class singleinstance:
 
 
 class Manager(object):
-    def __init__(self,obs_ip="127.0.0.1",button_type="usbbuttonbutton",preview_only=False):
+    def __init__(self,config=None,preview_only=False):
         self.logger = logging.getLogger("Button_Manager")
-        self.logger.info("Args  obs_ip = %s button_type = %s preview = %s" %(obs_ip,button_type,str(preview_only)))
+        self.logger.debug("Config:\n" + pformat(config))
+        self.config = config
         self.logger.info("Initializing")
-        self.profiles = [("Maggie",(0,0,255)),("Amy",(255,0,255)),("Bryan",(255,255,0)),("Youtube",(255,128,0)),("Maggie_Restreamio",(143,0,199))]
+        self.profiles = self.config["streamers"]
         self.state = 'idle'
-        if button_type == "usbbuttonbutton":
+        if self.config["button_type"] == "usbbuttonbutton":
             self.button = UsbButtonButton()
-        elif button_type == "avermedia":
+        elif self.config["button_type"] == "avermedia":
             self.button = AvrMediaButton()
-        elif button_type == "keyboard":
+        elif self.config["button_type"] == "keyboard":
             self.button = KeyboardButton()
-        self.obsremote = OBSRemote("ws://%s:4444" %obs_ip)
+        self.obsremote = OBSRemote("ws://%s:4444" %self.config["obs_ip"])
         self.current_profile = 0
         self.nextstate = []
         self.current_color = (0,0,0)
@@ -46,14 +51,14 @@ class Manager(object):
         self.starttime = datetime.now()
         self.preview = preview_only
         self.last_recover_attempt = 0
-        self.tape = BlinkyTape("COM3")
+        self.tape = BlinkyTape(self.config["blinky_port"])
         return
 
     def run(self):
         self.logger.info("Running")
         self.obsremote.start()
         self.button.start()
-        self.button.send_color(self.profiles[self.current_profile][1])
+        self.button.send_color(self.get_color())
         statecache = ''
         try:
             while True:
@@ -126,14 +131,14 @@ class Manager(object):
     def handle_idle(self):
         if self.button.pressed:
                 self.state = 'profileselect'
-        elif self.button.current_color != self.profiles[self.current_profile][1]:
-            self.button.send_color(self.profiles[self.current_profile][1])
+        elif self.button.current_color != self.profiles[self.current_profile]["button_color"]:
+            self.button.send_color(self.profiles[self.current_profile]["button_color"])
 
     def handle_profileselect(self):
         if self.button.pressed:
             if self.button.get_elapsed_time() > 2:
-                self.logger.info("Streaming starting with profile: %s" %self.profiles[self.current_profile][0])
-                self.obsremote.set_profile(self.profiles[self.current_profile][0])
+                self.logger.info("Streaming starting with profile: %s" %self.profiles[self.current_profile]["obs_profile"])
+                self.obsremote.set_profile(self.profiles[self.current_profile]["obs_profile"])
                 self.obsremote.start_streaming(self.preview)
                 self.starttime = datetime.now()
                 self.state = 'waitunpressed'
@@ -142,8 +147,8 @@ class Manager(object):
                 self.button.flash((255,0,0),(0,255,0),count=10)
         else:
             self.next_profile();
-            self.button.send_color(self.profiles[self.current_profile][1])
-            self.logger.info('Selected next profile : %s' %self.profiles[self.current_profile][0])
+            self.button.send_color(self.get_color())
+            self.logger.info('Selected next profile : %s' %self.profiles[self.current_profile]["obs_profile"])
             self.state = 'idle'
 
     def handle_waitunpressed(self):
@@ -163,14 +168,14 @@ class Manager(object):
     def handle_streaming_idle(self):
         if self.button.pressed:
             self.state = 'streaming_pressed'
-            self.button.send_color(self.profiles[self.current_profile][1])
+            self.button.send_color(self.get_color())
         if not self.obsremote.streaming:
             self.finish_stream()
             self.state = 'idle'
-            self.button.send_color(self.profiles[self.current_profile][1])
+            self.button.send_color(self.get_color())
             self.tape.displayColor(0, 0, 0)
-        elif round(time()) % 2 == 0 and self.button.current_color != self.profiles[self.current_profile][1]:
-            self.button.send_color(self.profiles[self.current_profile][1])
+        elif round(time()) % 2 == 0 and self.button.current_color != self.get_color():
+            self.button.send_color(self.get_color())
         elif round(time()) % 2 == 1 and self.button.current_color != (0,255,0):
             self.button.send_color((0,255,0))
 
@@ -184,7 +189,7 @@ class Manager(object):
                 self.nextstate.append('idle')
                 self.nextstate.append('wait_stop_streaming')
                 self.finish_stream()
-                self.button.flash(self.profiles[self.current_profile][1],(255,0,0),count=10)
+                self.button.flash(self.get_color(),(255,0,0),count=10)
         else:
             self.state = 'streaming_idle'
             self.logger.info("Highlight created @ %s" %self.obsremote.streamTime)
@@ -193,27 +198,21 @@ class Manager(object):
     def finish_stream(self):
         if self.highlights:
             self.logger.info("Writing highlight times to file")
-            h_file = open("E:\Stream_archives\%s_highlights.txt"%(self.starttime.strftime('%Y-%m-%d-%H%M-%S')),'a')
+            h_file = open("%s\%s_highlights.txt"%(self.config["highlights_dir"], self.starttime.strftime('%Y-%m-%d-%H%M-%S')),'a')
             for highlight in self.highlights:
                 h_file.write(str(timedelta(milliseconds=highlight)) + '\n')
             h_file.close()
             self.highlights = []
 
+    def get_color(self):
+        return self.profiles[self.current_profile]["button_color"]
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--obsip", "-o",
-                        default="127.0.0.1",
-                        dest="obs_ip",
-                        help="IP Address for OBS")
-    parser.add_argument("--button", "-b",
-                        default="usbbuttonbutton",
-                        dest="button",
-                        help="Set type of USB Button, valid values are :  usbbuttonbutton , avermedia , keyboard")
     parser.add_argument("--debug", "-d",
                         action="store_const", dest="loglevel",const=logging.DEBUG,
                         default=logging.WARNING,
-                        help="Enable debug messages")
+                        help="Enable ALL THE MESSAGES")
     parser.add_argument("--verbose", "-v",
                        action="store_const", dest="loglevel", const=logging.INFO,
                        help="Enable messages that might be useful but not ALL THE MESSAGES")
@@ -223,10 +222,16 @@ if __name__ == '__main__':
                        default=False,
                        help="Preview stream only, useful for testing")
     args = parser.parse_args()
-    logging.basicConfig(level=args.loglevel,format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",datefmt="%H:%M:%S")
+    if not platform.system() == "Windows":
+        print("WINDOWS ONLY - UNIX USERS KEEP OUT!!")
+        exit(0)
     instance = singleinstance()
     if instance.alreadyrunning():
         logging.fatal("Can't run multiple instances of this script!")
         exit(0)
-    y = Manager(obs_ip=args.obs_ip,button_type=args.button,preview_only=args.preview)
+    logging.basicConfig(level=args.loglevel,format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",datefmt="%H:%M:%S")
+    configpath = os.path.join(os.path.dirname(__file__), 'config.json')
+    config_file = open(configpath,"r")
+    config = json.loads(config_file.read())
+    y = Manager(config,preview_only=args.preview)
     y.run()
