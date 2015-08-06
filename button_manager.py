@@ -131,8 +131,8 @@ class Manager(object):
     def handle_idle(self):
         if self.button.pressed:
                 self.state = 'profileselect'
-        elif self.button.current_color != self.profiles[self.current_profile]["button_color"]:
-            self.button.send_color(self.profiles[self.current_profile]["button_color"])
+        elif self.button.current_color != self.get_color():
+            self.button.send_color(self.get_color())
 
     def handle_profileselect(self):
         if self.button.pressed:
