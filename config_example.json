@@ -1,0 +1,29 @@
+{
+  "use_blinky": true,
+  "blinky_port": "COM5",
+  "use_hue": false,
+  "obs_ip": "127.0.0.1",
+  "use_button": true,
+  "button_type": "usbbuttonbutton",
+  "highlights_dir": "E:\\Stream_archives\\",
+
+  "streamers": {
+    "streamer": {
+      "obs_profile": "Maggie",
+      "twitch_name": "Animaggus",
+      "buttoncolor": [0, 0, 255],
+    },
+    "streamer": {
+      "obs_profile": "Bryan",
+      "twitch_name": "smallbluesquare",
+      "buttoncolor": [0, 255, 0],
+    },
+    "streamer": {
+      "obs_profile": "Sam",
+      "twitch_name": "CollectableCat",
+      "buttoncolor": [255, 0, 0],
+    }
+  },
+
+
+}

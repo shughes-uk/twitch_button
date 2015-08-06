@@ -1,13 +1,16 @@
 from time import sleep , time
 from datetime import datetime, timedelta
 from argparse import ArgumentParser
+import os, json, platform
 from obsremote import OBSRemote
-from usbbuttons import *
 from BlinkyTape import BlinkyTape
 import logging
-from win32event import CreateMutex
-from win32api import CloseHandle, GetLastError
-from winerror import ERROR_ALREADY_EXISTS
+if platform.system() == "Windows":
+    from win32event import CreateMutex
+    from win32api import CloseHandle, GetLastError
+    from winerror import ERROR_ALREADY_EXISTS
+    from usbbuttons import *
+
 
 class singleinstance:
     """ Limits application to single instance """
@@ -202,18 +205,10 @@ class Manager(object):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--obsip", "-o",
-                        default="127.0.0.1",
-                        dest="obs_ip",
-                        help="IP Address for OBS")
-    parser.add_argument("--button", "-b",
-                        default="usbbuttonbutton",
-                        dest="button",
-                        help="Set type of USB Button, valid values are :  usbbuttonbutton , avermedia , keyboard")
     parser.add_argument("--debug", "-d",
                         action="store_const", dest="loglevel",const=logging.DEBUG,
                         default=logging.WARNING,
-                        help="Enable debug messages")
+                        help="Enable ALL THE MESSAGES")
     parser.add_argument("--verbose", "-v",
                        action="store_const", dest="loglevel", const=logging.INFO,
                        help="Enable messages that might be useful but not ALL THE MESSAGES")
@@ -223,10 +218,16 @@ if __name__ == '__main__':
                        default=False,
                        help="Preview stream only, useful for testing")
     args = parser.parse_args()
-    logging.basicConfig(level=args.loglevel,format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",datefmt="%H:%M:%S")
+    if not platform.system() == "Windows":
+        print("WINDOWS ONLY - UNIX USERS KEEP OUT!!")
+        exit(0)
     instance = singleinstance()
     if instance.alreadyrunning():
         logging.fatal("Can't run multiple instances of this script!")
         exit(0)
+    logging.basicConfig(level=args.loglevel,format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",datefmt="%H:%M:%S")
+    configpath = os.path.join(os.path.dirname(__file__), 'config.json')
+    config_file = open(configpath,"r")
+    config = json.loads(config_file.readlines())
     y = Manager(obs_ip=args.obs_ip,button_type=args.button,preview_only=args.preview)
     y.run()
