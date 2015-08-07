@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 import os, json, platform
 from obsremote import OBSRemote
 from BlinkyTape import BlinkyTape
+from twitch_handler import TwitchHandler
 import logging
 from pprint import pformat
 if platform.system() == "Windows":
@@ -11,7 +12,6 @@ if platform.system() == "Windows":
     from win32api import CloseHandle, GetLastError
     from winerror import ERROR_ALREADY_EXISTS
     from usbbuttons import *
-
 
 class singleinstance:
     """ Limits application to single instance """
@@ -52,10 +52,13 @@ class Manager(object):
         self.preview = preview_only
         self.last_recover_attempt = 0
         self.tape = BlinkyTape(self.config["blinky_port"])
+        names = [x["twitch_name"] for x in self.config["streamers"]]
+        self.twitch_handler = TwitchHandler(names)
         return
 
     def run(self):
         self.logger.info("Running")
+        self.twitch_handler.start()
         self.obsremote.start()
         self.button.start()
         self.button.send_color(self.get_color())
@@ -75,6 +78,9 @@ class Manager(object):
             self.obsremote.stop()
             self.button.send_color((0,0,0))
             self.button.stop()
+            self.twitch_handler.stop()
+            self.tape.displayColor(0, 0, 0)
+            self.tape.close()
 
     def next_profile(self):
         self.current_profile = (self.current_profile + 1) % len(self.profiles)
@@ -174,10 +180,20 @@ class Manager(object):
             self.state = 'idle'
             self.button.send_color(self.get_color())
             self.tape.displayColor(0, 0, 0)
-        elif round(time()) % 2 == 0 and self.button.current_color != self.get_color():
-            self.button.send_color(self.get_color())
-        elif round(time()) % 2 == 1 and self.button.current_color != (0,255,0):
-            self.button.send_color((0,255,0))
+        elif round(time()) % 2 == 0:
+            if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != self.get_color():
+                self.button.send_color(self.get_color())
+                self.tape.displayColor(0, 255, 0)
+            elif self.button.current_color != self.get_color():
+                self.button.send_color(self.get_color())
+                self.tape.displayColor(0, 255, 0)
+        elif round(time()) % 2 == 1:
+            if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != [255,0,0]:
+                self.button.send_color((255,0,0))
+                self.tape.displayColor(255, 0, 0)
+            elif self.button.current_color != (0,255,0):
+                self.button.send_color((0,255,0))
+
 
 
     def handle_streaming_pressed(self):
@@ -206,6 +222,9 @@ class Manager(object):
 
     def get_color(self):
         return self.profiles[self.current_profile]["button_color"]
+
+    def get_twitch_name(self):
+        return self.profiles[self.current_profile]["twitch_name"]
 
 if __name__ == '__main__':
     parser = ArgumentParser()
