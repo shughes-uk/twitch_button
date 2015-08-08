@@ -31,15 +31,39 @@ import pywinusb.hid as hid
 from time import time, sleep
 import pythoncom, pyHook , threading, win32event, logging
 
+class Device(object):
+    def __init__(self):
+        super(Device, self).__init__()
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.current_color = (0,0,0)
+
+    def set_color(self,color):
+        raise Exception("Function not implemented , whoops")
+
+    def flash(self,color_1,color_2,ntimes=10,interval=0.5):
+        old_color = self.current_color
+        for x in range (ntimes):
+            self.set_color(color_1)
+            sleep(interval)
+            self.set_color(color_2)
+        self.set_color(old_color)
+
+    def start(self):
+        raise Exception("Function not implemented, whoops")
+
+    def stop(self):
+        raise Exception("Function not implemented, whoops")
+
+
 #used for debugging without access to a usb button mostly
-class KeyboardButton(threading.Thread):
+class KeyboardButton(threading.Thread,Device):
     def __init__(self):
         super(KeyboardButton, self).__init__()
         self.pressed = False
         self.pressedTime = 0
         self.status_queue = []
         self.daemon = True
-        self.logger = logging.getLogger("Keyboard_button")
+        #self.logger = logging.getLogger("Keyboard_button")
 
 
     def run(self):
@@ -83,8 +107,9 @@ class KeyboardButton(threading.Thread):
 
 
 
-class UsbButtonButton(object):
+class UsbButtonButton(Device):b
     def __init__(self):
+        super(UsbButtonButton, self).__init__()
         self.logger = logging.getLogger("UsbButtonButton")
         self.pressed = False
         self.pressedTime = 0
@@ -111,7 +136,7 @@ class UsbButtonButton(object):
                 return
             self.report.send([0x00,0x02,0x00,0x00,0x00])
 
-    def send_color(self,rgb):
+    def set_color(self,rgb):
         if self.device:
             if not self.device.is_plugged():
                 self.connected = False
@@ -218,3 +243,143 @@ class AvrMediaButton(object):
         self.report[self.target_usage] = ALL_OFF[0]
         self.report.send()
         return
+
+import serial
+
+# For Python3 support- always run strings through a bytes converter
+import sys
+if sys.version_info < (3,):
+    def encode(x):
+        return x
+else:
+    import codecs
+    def encode(x):
+        return codecs.latin_1_encode(x)[0]
+
+
+class BlinkyTape(Device):
+    def __init__(self, port, ledCount=60, buffered=True):
+        """Creates a BlinkyTape object and opens the port.
+
+        Parameters:
+          port
+            Required, port name as accepted by PySerial library:
+            http://pyserial.sourceforge.net/pyserial_api.html#serial.Serial
+            It is the same port name that is used in Arduino IDE.
+            Ex.: COM5 (Windows), /dev/ttyACM0 (Linux).
+          ledCount
+            Optional, total number of LEDs to work with,
+            defaults to 60 LEDs. The limit is enforced and an
+            attempt to send more pixel data will throw an exception.
+          buffered
+            Optional, enabled by default. If enabled, will buffer
+            pixel data until a show command is issued. If disabled,
+            the data will be sent in byte triplets as expected by firmware,
+            with immediate flush of the serial buffers (slower).
+
+        """
+        super(BlinkyTape, self).__init__()
+        self.port = port
+        self.ledCount = ledCount
+        self.position = 0
+        self.buffered = buffered
+        self.buf = ""
+
+    def start(self):
+        self.serial = serial.Serial(port, 115200)
+        self.show()  # Flush any incomplete data
+
+    def stop(self):
+        """Safely closes the serial port."""
+        self.serial.close()
+
+    def send_list(self, colors):
+        if len(colors) > self.ledCount:
+            raise RuntimeError("Attempting to set pixel outside range!")
+        for r, g, b in colors:
+            self.sendPixel(r, g, b)
+        self.show()
+
+    def send_list(self, colors):
+        data = ""
+        for r, g, b in colors:
+            if r >= 255:
+                r = 254
+            if g >= 255:
+                g = 254
+            if b >= 255:
+                b = 254
+            data += chr(r) + chr(g) + chr(b)
+        self.serial.write(encode(data))
+        self.show()
+
+    def sendPixel(self, r, g, b):
+        """Sends the next pixel data triplet in RGB format.
+
+        Values are clamped to 0-254 automatically.
+
+        Throws a RuntimeException if [ledCount] pixels are already set.
+        """
+        data = ""
+        if r < 0:
+            r = 0
+        if g < 0:
+            g = 0
+        if b < 0:
+            b = 0
+        if r >= 255:
+            r = 254
+        if g >= 255:
+            g = 254
+        if b >= 255:
+            b = 254
+        data = chr(r) + chr(g) + chr(b)
+        if self.position < self.ledCount:
+            if self.buffered:
+                self.buf += data
+            else:
+                self.serial.write(encode(data))
+                self.serial.flush()
+            self.position += 1
+        else:
+            raise RuntimeError("Attempting to set pixel outside range!")
+
+    def show(self):
+        """Sends the command(s) to display all accumulated pixel data.
+
+        Resets the next pixel position to 0, flushes the serial buffer,
+        and discards any accumulated responses from BlinkyTape.
+        """
+        control = chr(255)
+        if self.buffered:
+            # Fix an OS X specific bug where sending more than 383 bytes of data at once
+            # hangs the BlinkyTape controller. Why this is???
+            # TODO: Test me on other platforms
+            CHUNK_SIZE = 300
+
+            self.buf += control
+            for i in range(0, len(self.buf), CHUNK_SIZE):
+                self.serial.write(encode(self.buf[i:i+CHUNK_SIZE]))
+                self.serial.flush()
+
+            self.buf = ""
+        else:
+            self.serial.write(encode(control))
+        self.serial.flush()
+        self.serial.flushInput()  # Clear responses from BlinkyTape, if any
+        self.position = 0
+
+    def set_color(self, r, g, b):
+        """Fills [ledCount] pixels with RGB color and shows it."""
+        for i in range(0, self.ledCount):
+            self.sendPixel(r, g, b)
+        self.current_color = (r,g,b)
+        self.show()
+
+    def resetToBootloader(self):
+        """Initiates a reset on BlinkyTape.
+
+        Note that it will be disconnected.
+        """
+        self.serial.setBaudrate(1200)
+        self.close()

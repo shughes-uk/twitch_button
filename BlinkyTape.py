@@ -52,6 +52,7 @@ class BlinkyTape(object):
         self.buf = ""
         self.serial = serial.Serial(port, 115200)
         self.show()  # Flush any incomplete data
+        self.current_color = (0,0,0)
 
     def send_list(self, colors):
         if len(colors) > self.ledCount:
@@ -133,6 +134,7 @@ class BlinkyTape(object):
         """Fills [ledCount] pixels with RGB color and shows it."""
         for i in range(0, self.ledCount):
             self.sendPixel(r, g, b)
+        self.current_color = (r,g,b)
         self.show()
 
     def resetToBootloader(self):
