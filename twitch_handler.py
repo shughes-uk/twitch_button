@@ -1,15 +1,28 @@
 from twitch import TwitchTV
 import threading, logging
 from time import sleep
+from urllib import quote_plus
+from pprint import pprint
+class TwitchTV_b(TwitchTV):
+    def getLatestFollower(self, username):
+        acc = []
+        quotedUsername = quote_plus(username)
+        url = "https://api.twitch.tv/kraken/channels/%s/follows/?direction=DESC&limit=1&offset=0" %username
+        acc = self._fetchItems(url, 'follows')
+        return acc
+
 class TwitchHandler(threading.Thread):
-    def __init__(self,name_list):
+    def __init__(self,name_list,new_follower_callback = None):
         super(TwitchHandler, self).__init__()
+        self.nf_callback = new_follower_callback
         self.logger = logging.getLogger("TwitchHandler")
         self.streamers = {}
+        self.follower_cache = {}
+        self.twitch = TwitchTV_b(logger=logging.getLogger("TwitchAPI"))
+        self.running = False
         for name in name_list:
             self.streamers[name] = False
-        self.twitch = TwitchTV(logger=logging.getLogger("TwitchAPI"))
-        self.running = False
+            self.follower_cache[name]  = self.twitch.getLatestFollower(name)[0]['user']['_id']
 
     def run(self):
         self.logger.info("Starting twitch api polling")
@@ -25,6 +38,12 @@ class TwitchHandler(threading.Thread):
                     if self.streamers[name]:
                         self.logger.info("%s is no longer live on twitch" %name)
                         self.streamers[name] = False
+                if self.nf_callback:
+                    lastFollower_id = self.twitch.getLatestFollower(name)[0]['user']['_id']
+                    if lastFollower_id != self.follower_cache[name]:
+                        self.logger.info("%s has a new follower!" %name)
+                        self.follower_cache[name] = lastFollower_id
+                        self.nf_callback(name)
             sleep(2)
 
     def stop(self):

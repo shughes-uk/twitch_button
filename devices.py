@@ -105,9 +105,7 @@ class KeyboardButton(threading.Thread,Device):
         return True
 
 
-
-
-class UsbButtonButton(Device):b
+class UsbButtonButton(Device):
     def __init__(self):
         super(UsbButtonButton, self).__init__()
         self.logger = logging.getLogger("UsbButtonButton")
@@ -286,7 +284,7 @@ class BlinkyTape(Device):
         self.buf = ""
 
     def start(self):
-        self.serial = serial.Serial(port, 115200)
+        self.serial = serial.Serial(self.port, 115200)
         self.show()  # Flush any incomplete data
 
     def stop(self):
@@ -369,11 +367,11 @@ class BlinkyTape(Device):
         self.serial.flushInput()  # Clear responses from BlinkyTape, if any
         self.position = 0
 
-    def set_color(self, r, g, b):
+    def set_color(self, rgb):
         """Fills [ledCount] pixels with RGB color and shows it."""
         for i in range(0, self.ledCount):
-            self.sendPixel(r, g, b)
-        self.current_color = (r,g,b)
+            self.sendPixel(rgb[0], rgb[1], rgb[2])
+        self.current_color = rbg
         self.show()
 
     def resetToBootloader(self):
