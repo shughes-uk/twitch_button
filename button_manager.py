@@ -32,77 +32,71 @@ class singleinstance:
 class Manager(object):
     def __init__(self,config=None,preview_only=False):
         self.logger = logging.getLogger("Button_Manager")
+        self.logger.info("Initializing")
         self.logger.debug("Config:\n" + pformat(config))
         self.config = config
-        self.logger.info("Initializing")
-        self.profiles = self.config["streamers"]
         self.state = 'idle'
-        if self.config["button_type"] == "usbbuttonbutton":
-            self.button = UsbButtonButton()
-        elif self.config["button_type"] == "avermedia":
-            self.button = AvrMediaButton()
-        elif self.config["button_type"] == "keyboard":
-            self.button = KeyboardButton()
-        self.obsremote = OBSRemote("ws://%s:4444" %self.config["obs_ip"])
         self.current_profile = 0
         self.nextstate = []
         self.current_color = (0,0,0)
-        self.highlights = []
         self.starttime = datetime.now()
         self.preview = preview_only
         self.last_recover_attempt = 0
-        self.tape = BlinkyTape(self.config["blinky_port"])
-        names = [x["twitch_name"] for x in self.config["streamers"]]
-        self.twitch_handler = TwitchHandler(names,self.new_follower)
-        return
+        self.setup_twitch()
+        self.setup_devices()
+        self.setup_obs()
+
+    def setup_twitch(self):
+        if self.config["twitch_integration"]["enabled"]:
+            names = [x["twitch_name"] for x in self.config["streamers"]]
+            self.twitch_handler = TwitchHandler(names,self.new_follower)
+
+    def setup_devices(self):
+        self.devices = []
+        if self.config["ultimarc_button"]["enabled"]:
+            self.button = UsbButtonButton()
+            self.devices.append(self.button)
+            self.highlights = []
+        else:
+            self.button = None
+        if self.config["blinky_tape"]["enabled"]:
+            self.tape = BlinkyTape(self.config["blinky_tape"]["port"])
+            self.devices.append(self.tape)
+        else:
+            self.tape = None
+        if self.config["phillips_hue"]["enabled"]:
+            Exception("Hue not implemented yet")
+
+    def setup_obs(self):
+        if self.config["obs_integration"]["enabled"]:
+            self.obsremote = OBSRemote("ws://%s:4444" %self.config["obs_integration"]["ip"])
+            self.obs_profiles = self.config["streamers"]
+        else:
+            self.obsremote = None
 
     def set_color(self,color,devices):
         for device in devices:
-            if device == "tape" or device == "all":
-                self.tape.displayColor(color[0],color[1],color[2])
-            if device == "button" or device == "all":
-                self.button.send_color(color)
+            if device == "all":
+                for device in devices:
+                    device.set_color(color)
+            if device == "tape" and self.tape:
+                self.tape.set_color(color)
+            if device == "button" and self.button:
+                self.button.set_color(color)
             if device == "hue" or device == "all":
                 self.logger.warn("Hue not yet implmented")
 
-    def flash_color(self,color_1,color_2,devices,ntimes=10,interval=0.5):
-        old_colors = {}
-        for device in devices:
-            old_colors[device] = device.current_color
-        for x in range (ntimes):
-            for device in devices:
-                device.set_color(color_1)
-            sleep(interval)
-            for device in devices:
-                device.set_color(color_2)
-        for device in devices:
-            device.set_color(old_colors[device])
-
     def new_follower(self,name):
         if self.get_twitch_name() == name:
-            self.set_color((100,100,100), 'all')
-            sleep(0.5) ,,,,,,, mkopp
-            self.set_color((200, 200, 200), 'all')
-            sleep(0.5)
-            self.set_color((100,100,100), 'all')
-            sleep(0.5)
-            self.set_color((200, 200, 200), 'all')
-            sleep(0.5)
-            self.set_color((100,100,100), 'all')
-            sleep(0.5)
-            self.set_color((200, 200, 200), 'all')
-            sleep(0.5)
-            self.set_color((100,100,100), 'all')
-            sleep(0.5)
-            self.set_color((200, 200, 200), 'all')
-            sleep(0.5)
-            self.tape.displayColor(0, 255, 0)
+            self.tape.flash((100,100,100),(200,200,200),20,1)
 
     def run(self):
         self.logger.info("Running")
-        self.obsremote.start()
-        self.button.start()
-        self.button.send_color(self.get_color())
+        if self.obsremote:
+            self.obsremote.start()
+        if self.button:
+            self.button.start()
+        self.set_color(self.get_color(),"button")
         statecache = ''
         try:
             while True:
@@ -115,25 +109,32 @@ class Manager(object):
             pass
         finally:
             self.logger.info("Shutting down")
-            self.obsremote.stop_streaming(self.preview)
-            self.obsremote.stop()
-            self.button.send_color((0,0,0))
-            self.button.stop()
-            self.twitch_handler.stop()
-            self.tape.displayColor(0, 0, 0)
-            self.tape.close()
+            if self.obsremote:
+                self.obsremote.stop_streaming(self.preview)
+                self.obsremote.stop()
+            if self.button:
+                self.button.send_color((0,0,0))
+                self.button.stop()
+            if self.twitch_handler:
+                self.twitch_handler.stop()
+            if self.tape:
+                self.tape.displayColor(0, 0, 0)
+                self.tape.close()
 
-        def next_profile(self):
+    def next_profile(self):
         self.current_profile = (self.current_profile + 1) % len(self.profiles)
-        return self.current_profile
+    return self.current_profile
 
     def tick(self):
-        if not self.button.connected and self.state != 'error':
-            self.state = 'error'
-            self.logger.warn("Button appears to be disconnected , will try to find it again in 10 seconds")
-        elif not self.obsremote.connected and self.state != 'error':
+        if self.button
+            if not self.button.connected and self.state != 'error':
+                self.state = 'error'
+                self.logger.warn("Button appears to be disconnected , will try to find it again in 10 seconds")
+                return
+        if not self.obsremote.connected and self.state != 'error':
             self.state = 'error'
             self.logger.warn("OBSRemote not connected, will retry in aprox 20 seconds")
+            return
         elif self.obsremote.streaming and self.state not in ['streaming_idle', 'wait_stop_streaming', 'wait_streaming', 'waitunpressed', 'streaming_pressed']:
             self.state = 'streaming_idle'
             self.starttime = datetime.now()
@@ -160,8 +161,15 @@ class Manager(object):
             self.handle_streaming_pressed()
 
     def handle_error(self):
-        if self.obsremote.connected and self.button.connected:
-            self.state = 'idle'
+        if self.button:
+            if self.obsremote.connected and self.button.connected:
+                self.state = "idle"
+                return
+        else:
+            if self.obsremote.connected:
+                self.state = "idle"
+                return
+
         if time() - self.last_recover_attempt > 20:
             self.logger.warn("Attempting recovery")
             self.last_recover_attempt = time()
@@ -169,17 +177,22 @@ class Manager(object):
                 self.obsremote.start()
                 if self.button.connected:
                     if round(time()) % 2 == 0 and self.button.current_color != (0,0,0):
-                        self.button.send_color((0,0,0))
+                        self.set_color((0,0,0),"all")
                     elif round(time()) % 2 == 1 and self.button.current_color != (255,0,0):
-                        self.button.send_color((255,0,0))
-            if not self.button.connected:
-                self.button.start()
+                        self.set_color((255,0,0),"all")
+            if self.button:
+                if not self.button.connected:
+                    self.button.start()
 
     def handle_idle(self):
-        if self.button.pressed:
-                self.state = 'profileselect'
-        elif self.button.current_color != self.get_color():
-            self.button.send_color(self.get_color())
+        if self.button:
+            if self.button.pressed:
+                    self.state = 'profileselect'
+            elif self.button.current_color != self.get_color():
+                self.set_color(self.get_color(),"button")
+        if self.tape:
+            if self.tape.current_color != (0,0,0):
+                self.set_color((0,0,0),"tape")
 
     def handle_profileselect(self):
         if self.button.pressed:
@@ -213,29 +226,38 @@ class Manager(object):
             self.state = self.nextstate.pop()
 
     def handle_streaming_idle(self):
-        if not self.twitch_handler.running:
-            self.twitch_handler.start()
-        if self.button.pressed:
-            self.state = 'streaming_pressed'
-            self.button.send_color(self.get_color())
+        if self.twitch_handler
+            if not self.twitch_handler.running:
+                self.twitch_handler.start()
+        if self.button:
+            if self.button.pressed:
+                self.state = 'streaming_pressed'
+                self.button.send_color(self.get_color())
         if not self.obsremote.streaming:
             self.finish_stream()
             self.state = 'idle'
-            self.button.send_color(self.get_color())
-            self.tape.displayColor(0, 0, 0)
+            self.set_color(self.get_color(),"button")
+            self.set_color((0, 0, 0),"tape")
         elif round(time()) % 2 == 0:
-            if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != self.get_color():
-                self.button.send_color(self.get_color())
-                self.tape.displayColor(0, 255, 0)
-            elif self.button.current_color != self.get_color():
-                self.button.send_color(self.get_color())
-                self.tape.displayColor(0, 255, 0)
+            if self.twitch_handler:
+                if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != self.get_color():
+                    self.set_color(self.get_color(),"button")
+                    self.set_color(self.get_color(),"tape")
+                    return
+            if self.button:
+                if self.button.current_color != self.get_color():
+                    self.set_color(self.get_color(),"button")
+                    self.set_color((0, 255, 0),"tape")
         elif round(time()) % 2 == 1:
-            if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != [255,0,0]:
-                self.button.send_color((255,0,0))
-                self.tape.displayColor(255, 0, 0)
-            elif self.button.current_color != (0,255,0):
-                self.button.send_color((0,255,0))
+            if self.twitch_handler:
+                if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != [255,0,0]:
+                    self.set_color((255,0,0),"button")
+                    self.set_color((255, 0, 0),"tape")
+                    return
+            if self.button:
+                if self.button.current_color != (0,255,0):
+                    self.set_color((0,255,0),"button")
+                    self.set_color((0,255,0)),"tape")
 
 
 
@@ -255,8 +277,9 @@ class Manager(object):
             self.highlights.append(self.obsremote.streamTime)
 
     def finish_stream(self):
-        if self.twitch_handler.running:
-            self.twitch_handler.stop()
+        if self.twitch_handler:
+            if self.twitch_handler.running:
+                self.twitch_handler.stop()
         if self.highlights:
             self.logger.info("Writing highlight times to file")
             h_file = open("%s\%s_highlights.txt"%(self.config["highlights_dir"], self.starttime.strftime('%Y-%m-%d-%H%M-%S')),'a')

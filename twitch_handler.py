@@ -12,9 +12,10 @@ class TwitchTV_b(TwitchTV):
         return acc
 
 class TwitchHandler(threading.Thread):
-    def __init__(self,name_list,new_follower_callback = None):
+    def __init__(self,name_list,new_follower_callback = None,watch_streaming = True):
         super(TwitchHandler, self).__init__()
         self.nf_callback = new_follower_callback
+        self.watch_streaming = watch_streaming
         self.logger = logging.getLogger("TwitchHandler")
         self.streamers = {}
         self.follower_cache = {}
@@ -29,15 +30,16 @@ class TwitchHandler(threading.Thread):
         self.running = True
         while self.running:
             for name in self.streamers.keys():
-                result = [x for x in self.twitch.searchStreams(name) if x['channel']['name'] == name]
-                if result:
-                    if not self.streamers[name]:
-                        self.logger.info("%s is now live on twitch" %name)
-                        self.streamers[name] = True
-                else:
-                    if self.streamers[name]:
-                        self.logger.info("%s is no longer live on twitch" %name)
-                        self.streamers[name] = False
+                if self.watch_streaming:
+                    result = [x for x in self.twitch.searchStreams(name) if x['channel']['name'] == name]
+                    if result:
+                        if not self.streamers[name]:
+                            self.logger.info("%s is now live on twitch" %name)
+                            self.streamers[name] = True
+                    else:
+                        if self.streamers[name]:
+                            self.logger.info("%s is no longer live on twitch" %name)
+                            self.streamers[name] = False
                 if self.nf_callback:
                     lastFollower_id = self.twitch.getLatestFollower(name)[0]['user']['_id']
                     if lastFollower_id != self.follower_cache[name]:
@@ -47,6 +49,6 @@ class TwitchHandler(threading.Thread):
             sleep(2)
 
     def stop(self):
-        self.logger.info("Closing comms with OBS")
+        self.logger.info("Stopping twitch api polling")
         self.running = False
         self.join()

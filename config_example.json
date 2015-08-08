@@ -1,29 +1,40 @@
 {
-  "use_blinky": true,
-  "blinky_port": "COM5",
-  "use_hue": false,
-  "obs_ip": "127.0.0.1",
-  "use_button": true,
-  "button_type": "usbbuttonbutton",
-  "highlights_dir": "E:\\Stream_archives\\",
-
-  "streamers": {
-    "streamer": {
+  "obs_integration": {
+    "enabled": true,
+    "ip": "127.0.0.1",
+    "highlights_dir": "E:\\Stream_archives\\"
+  },
+  "blinky_tape": {
+    "enabled": false,
+    "port": "COM5",
+  },
+  "phillips_hue": {
+    "enabled": false
+  },
+  "ultimarc_button": {
+    "enabled": true
+  },
+  "twitch_integration":{
+    "enabled": true,
+    "follower_animations": true,
+    "subscriber_animations": true,
+    "viewercount_animations": true
+  },
+  "streamers": [
+    {
       "obs_profile": "Maggie",
       "twitch_name": "Animaggus",
-      "buttoncolor": [0, 0, 255],
+      "color": [0, 0, 255]
     },
-    "streamer": {
+    {
       "obs_profile": "Bryan",
-      "twitch_name": "smallbluesquare",
-      "buttoncolor": [0, 255, 0],
+      "twitch_name": "Smallbluesquare",
+      "buttoncolor": [0, 255, 0]
     },
-    "streamer": {
+    {
       "obs_profile": "Sam",
       "twitch_name": "CollectableCat",
-      "buttoncolor": [255, 0, 0],
+      "buttoncolor": [255, 0, 0]
     }
-  },
-
-
+  ]
 }
