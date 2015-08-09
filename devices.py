@@ -369,9 +369,9 @@ class BlinkyTape(Device):
 
     def set_color(self, rgb):
         """Fills [ledCount] pixels with RGB color and shows it."""
-        for i in range(0, self.ledCount):
+        for i in range(self.ledCount):
             self.sendPixel(rgb[0], rgb[1], rgb[2])
-        self.current_color = rbg
+        self.current_color = rgb
         self.show()
 
     def resetToBootloader(self):

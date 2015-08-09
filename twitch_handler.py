@@ -11,7 +11,7 @@ class TwitchTV_b(TwitchTV):
         acc = self._fetchItems(url, 'follows')
         return acc
 
-class TwitchHandler(threading.Thread):
+class TwitchHandler(object):
     def __init__(self,name_list,new_follower_callback = None,watch_streaming = True):
         super(TwitchHandler, self).__init__()
         self.nf_callback = new_follower_callback
@@ -24,6 +24,11 @@ class TwitchHandler(threading.Thread):
         for name in name_list:
             self.streamers[name] = False
             self.follower_cache[name]  = self.twitch.getLatestFollower(name)[0]['user']['_id']
+
+    def start(self):
+        self.running = True
+        self.thread = threading.Thread(target=self.run)
+        self.thread.start()
 
     def run(self):
         self.logger.info("Starting twitch api polling")
@@ -51,4 +56,4 @@ class TwitchHandler(threading.Thread):
     def stop(self):
         self.logger.info("Stopping twitch api polling")
         self.running = False
-        self.join()
+        self.thread.join()

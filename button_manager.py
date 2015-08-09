@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from argparse import ArgumentParser
 import os, json, platform
 from obsremote import OBSRemote
-from BlinkyTape import BlinkyTape
 from twitch_handler import TwitchHandler
 import logging
 from pprint import pformat
@@ -11,7 +10,7 @@ if platform.system() == "Windows":
     from win32event import CreateMutex
     from win32api import CloseHandle, GetLastError
     from winerror import ERROR_ALREADY_EXISTS
-    from usbbuttons import *
+    from devices import *
 
 class singleinstance:
     """ Limits application to single instance """
@@ -68,23 +67,19 @@ class Manager(object):
             Exception("Hue not implemented yet")
 
     def setup_obs(self):
-        if self.config["obs_integration"]["enabled"]:
-            self.obsremote = OBSRemote("ws://%s:4444" %self.config["obs_integration"]["ip"])
-            self.obs_profiles = self.config["streamers"]
-        else:
-            self.obsremote = None
+        self.obsremote = OBSRemote("ws://%s:4444" %self.config["obs_integration"]["ip"])
+        self.profiles = self.config["streamers"]
 
-    def set_color(self,color,devices):
-        for device in devices:
-            if device == "all":
-                for device in devices:
-                    device.set_color(color)
-            if device == "tape" and self.tape:
-                self.tape.set_color(color)
-            if device == "button" and self.button:
-                self.button.set_color(color)
-            if device == "hue" or device == "all":
-                self.logger.warn("Hue not yet implmented")
+    def set_color(self,color,device):
+        if device == "all":
+            for device in devices:
+                device.set_color(color)
+        if device == "tape" and self.tape:
+            self.tape.set_color(color)
+        if device == "button" and self.button:
+            self.button.set_color(color)
+        if device == "hue" or device == "all":
+            self.logger.warn("Hue not yet implmented")
 
     def new_follower(self,name):
         if self.get_twitch_name() == name:
@@ -92,8 +87,9 @@ class Manager(object):
 
     def run(self):
         self.logger.info("Running")
-        if self.obsremote:
-            self.obsremote.start()
+        self.obsremote.start()
+        if self.tape:
+            self.tape.start()
         if self.button:
             self.button.start()
         self.set_color(self.get_color(),"button")
@@ -109,24 +105,23 @@ class Manager(object):
             pass
         finally:
             self.logger.info("Shutting down")
-            if self.obsremote:
-                self.obsremote.stop_streaming(self.preview)
-                self.obsremote.stop()
+            self.obsremote.stop_streaming(self.preview)
+            self.obsremote.stop()
             if self.button:
-                self.button.send_color((0,0,0))
+                self.set_color((0,0,0),"button")
                 self.button.stop()
             if self.twitch_handler:
                 self.twitch_handler.stop()
             if self.tape:
-                self.tape.displayColor(0, 0, 0)
-                self.tape.close()
+                self.set_color((0, 0, 0),"tape")
+                self.tape.stop()
 
     def next_profile(self):
         self.current_profile = (self.current_profile + 1) % len(self.profiles)
-    return self.current_profile
+        return self.current_profile
 
     def tick(self):
-        if self.button
+        if self.button:
             if not self.button.connected and self.state != 'error':
                 self.state = 'error'
                 self.logger.warn("Button appears to be disconnected , will try to find it again in 10 seconds")
@@ -139,7 +134,8 @@ class Manager(object):
             self.state = 'streaming_idle'
             self.starttime = datetime.now()
             self.set_color((0,255,0),["tape"])
-        self.button.update()
+        if self.button:
+            self.button.update()
         self.handle_state()
 
     def handle_state(self):
@@ -187,7 +183,7 @@ class Manager(object):
     def handle_idle(self):
         if self.button:
             if self.button.pressed:
-                    self.state = 'profileselect'
+                self.state = 'profileselect'
             elif self.button.current_color != self.get_color():
                 self.set_color(self.get_color(),"button")
         if self.tape:
@@ -226,7 +222,7 @@ class Manager(object):
             self.state = self.nextstate.pop()
 
     def handle_streaming_idle(self):
-        if self.twitch_handler
+        if self.twitch_handler:
             if not self.twitch_handler.running:
                 self.twitch_handler.start()
         if self.button:
@@ -257,7 +253,7 @@ class Manager(object):
             if self.button:
                 if self.button.current_color != (0,255,0):
                     self.set_color((0,255,0),"button")
-                    self.set_color((0,255,0)),"tape")
+                    self.set_color((0,255,0),"tape")
 
 
 
@@ -289,7 +285,7 @@ class Manager(object):
             self.highlights = []
 
     def get_color(self):
-        return self.profiles[self.current_profile]["button_color"]
+        return self.profiles[self.current_profile]["color"]
 
     def get_twitch_name(self):
         return self.profiles[self.current_profile]["twitch_name"]

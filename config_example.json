@@ -1,12 +1,11 @@
 {
   "obs_integration": {
-    "enabled": true,
     "ip": "127.0.0.1",
     "highlights_dir": "E:\\Stream_archives\\"
   },
   "blinky_tape": {
-    "enabled": false,
-    "port": "COM5",
+    "enabled": true,
+    "port": "COM5"
   },
   "phillips_hue": {
     "enabled": false
@@ -14,11 +13,8 @@
   "ultimarc_button": {
     "enabled": true
   },
-  "twitch_integration":{
-    "enabled": true,
-    "follower_animations": true,
-    "subscriber_animations": true,
-    "viewercount_animations": true
+  "twitch_integration": {
+    "enabled": true
   },
   "streamers": [
     {
@@ -28,13 +24,13 @@
     },
     {
       "obs_profile": "Bryan",
-      "twitch_name": "Smallbluesquare",
-      "buttoncolor": [0, 255, 0]
+      "twitch_name": "smallbluesquare",
+      "color": [0, 255, 0]
     },
     {
       "obs_profile": "Sam",
       "twitch_name": "CollectableCat",
-      "buttoncolor": [255, 0, 0]
+      "color": [255, 0, 0]
     }
   ]
 }
