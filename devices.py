@@ -40,7 +40,7 @@ class Device(object):
     def set_color(self,color):
         raise Exception("Function not implemented , whoops")
 
-    def flash(self,color_1,color_2,ntimes=10,interval=0.5):
+    def flash(self,color_1,color_2,ntimes=10,interval=0.2):
         old_color = self.current_color
         for x in range (ntimes):
             self.set_color(color_1)
