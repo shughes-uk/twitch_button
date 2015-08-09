@@ -241,8 +241,7 @@ class Manager(object):
                     self.set_color(self.get_color(),"button")
                     self.set_color(self.get_color(),"tape")
                     print("set mycolor")
-                    return
-            if self.button:
+            elif self.button:
                 if self.button.current_color != self.get_color():
                     self.set_color(self.get_color(),"button")
                     self.set_color((0, 255, 0),"tape")
@@ -255,8 +254,7 @@ class Manager(object):
                     self.set_color((255,0,0),"button")
                     self.set_color((255, 0, 0),"tape")
                     print("set red")
-                    return
-            if self.button:
+            elif self.button:
                 if self.button.current_color != (0,255,0):
                     self.set_color((0,255,0),"button")
                     self.set_color((0,255,0),"tape")
