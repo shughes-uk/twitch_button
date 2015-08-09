@@ -19,7 +19,7 @@ class TwitchHandler(object):
         self.logger = logging.getLogger("TwitchHandler")
         self.streamers = {}
         self.follower_cache = {}
-        self.thread = None
+        self.thread = threading.Thread(target=self.run)
         self.twitch = TwitchTV_b(logger=logging.getLogger("TwitchAPI"))
         self.running = False
         for name in name_list:
@@ -49,7 +49,6 @@ class TwitchHandler(object):
                             self.streamers[name] = False
                 if self.nf_callback:
                     lastFollower_id = self.twitch.getLatestFollower(name)[0]['user']['_id']
-                    print lastFollower_id
                     if lastFollower_id != self.follower_cache[name]:
                         self.logger.info("%s has a new follower!" %name)
                         self.follower_cache[name] = lastFollower_id
@@ -57,7 +56,7 @@ class TwitchHandler(object):
             sleep(2)
 
     def stop(self):
-        self.logger.info("Stopping twitch api polling")
+        self.logger.info("Attempting to stop twitch api polling")
         self.running = False
-        if self.thread:
+        if self.thread.is_alive():
             self.thread.join()
