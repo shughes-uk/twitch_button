@@ -83,7 +83,7 @@ class Manager(object):
 
     def new_follower(self,name):
         if self.get_twitch_name() == name:
-            self.tape.flash((100,100,100),(200,200,200),20,1)
+            self.tape.flash((255,20,147),(255,0,0),20,1)
 
     def run(self):
         self.logger.info("Running")
@@ -105,7 +105,7 @@ class Manager(object):
             pass
         finally:
             self.logger.info("Shutting down")
-            self.obsremote.stop_streaming(self.preview)
+            #self.obsremote.stop_streaming(self.preview)
             self.obsremote.stop()
             if self.button:
                 self.set_color((0,0,0),"button")
@@ -200,7 +200,7 @@ class Manager(object):
                 self.state = 'waitunpressed'
                 self.nextstate.append('streaming_idle')
                 self.nextstate.append('wait_streaming')
-                self.button.flash((255,0,0),(0,255,0),count=10)
+                self.button.flash((255,0,0),(0,255,0))
         else:
             self.next_profile();
             self.set_color(self.get_color(),"button")
@@ -213,12 +213,12 @@ class Manager(object):
 
     def handle_wait_streaming(self):
         if self.obsremote.streaming:
-            self.tape.displayColor(0, 255, 0)
+            self.set_color((0,255,0), 'tape')
             self.state = self.nextstate.pop()
 
     def handle_wait_stop_streaming(self):
          if not self.obsremote.streaming:
-            self.tape.displayColor(0, 0, 0)
+            self.set_color((0,0,0), 'tape')
             self.state = self.nextstate.pop()
 
     def handle_streaming_idle(self):

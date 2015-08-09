@@ -116,6 +116,7 @@ class UsbButtonButton(Device):
         self.report = None
         self.device = None
         self.connected = False
+        self.thread = None
         return
 
     def get_elapsed_time(self):
@@ -183,21 +184,6 @@ class UsbButtonButton(Device):
                 self.pressed = False
                 self.pressedTime = 0
                 self.logger.debug('unpressed')
-
-    def flash(self,color1,color2,interval=0.2,count=5):
-        if self.device:
-            if not self.device.is_plugged():
-                self.connected = False
-                self.report = None
-                self.device = None
-                self.logger.warn("Usb Button possibly unplugged")
-                return
-            for x in range(0,count):
-                self.send_color(color1)
-                sleep(interval)
-                self.send_color(color2)
-                sleep(interval)
-
 
 class AvrMediaButton(object):
     def __init__(self,pressed_callback):
