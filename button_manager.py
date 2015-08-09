@@ -240,26 +240,17 @@ class Manager(object):
                 if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != self.get_color():
                     self.set_color(self.get_color(),"button")
                     self.set_color(self.get_color(),"tape")
-                    print("set mycolor")
-            elif self.button:
-                if self.button.current_color != self.get_color():
+                elif self.button.current_color != self.get_color():
                     self.set_color(self.get_color(),"button")
                     self.set_color((0, 255, 0),"tape")
-                    print("set thing")
         elif round(time()) % 2 == 1:
-            print('2')
             if self.twitch_handler:
                 if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != (255,0,0):
-                    print self.button.current_color
                     self.set_color((255,0,0),"button")
                     self.set_color((255, 0, 0),"tape")
-                    print("set red")
-            elif self.button:
-                if self.button.current_color != (0,255,0):
+                elif self.button.current_color != (0,255,0):
                     self.set_color((0,255,0),"button")
                     self.set_color((0,255,0),"tape")
-                    print("set eff")
-
 
 
     def handle_streaming_pressed(self):
