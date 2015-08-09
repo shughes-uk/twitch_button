@@ -235,25 +235,31 @@ class Manager(object):
             self.set_color(self.get_color(),"button")
             self.set_color((0, 0, 0),"tape")
         elif round(time()) % 2 == 0:
+            print('1')
             if self.twitch_handler:
                 if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != self.get_color():
                     self.set_color(self.get_color(),"button")
                     self.set_color(self.get_color(),"tape")
+                    print("set mycolor")
                     return
             if self.button:
                 if self.button.current_color != self.get_color():
                     self.set_color(self.get_color(),"button")
                     self.set_color((0, 255, 0),"tape")
+                    print("set thing")
         elif round(time()) % 2 == 1:
+            print('2')
             if self.twitch_handler:
                 if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != (255,0,0):
                     self.set_color((255,0,0),"button")
                     self.set_color((255, 0, 0),"tape")
+                    print("set red")
                     return
             if self.button:
                 if self.button.current_color != (0,255,0):
                     self.set_color((0,255,0),"button")
                     self.set_color((0,255,0),"tape")
+                    print("set eff")
 
 
 
