@@ -266,7 +266,7 @@ class Manager(object):
                 self.nextstate.append('idle')
                 self.nextstate.append('wait_stop_streaming')
                 self.finish_stream()
-                self.button.flash(self.get_color(),(255,0,0),count=10)
+                self.button.flash(self.get_color(),(255,0,0))
         else:
             self.state = 'streaming_idle'
             self.logger.info("Highlight created @ %s" %self.obsremote.streamTime)
