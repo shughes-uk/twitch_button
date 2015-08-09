@@ -36,7 +36,6 @@ class TwitchHandler(object):
         self.running = True
         while self.running:
             for name in self.streamers.keys():
-                print name
                 if self.watch_streaming:
                     result = [x for x in self.twitch.searchStreams(name) if x['channel']['name'] == name]
                     if result:
