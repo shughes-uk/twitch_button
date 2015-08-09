@@ -251,6 +251,7 @@ class Manager(object):
             print('2')
             if self.twitch_handler:
                 if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != (255,0,0):
+                    print self.button.current_color
                     self.set_color((255,0,0),"button")
                     self.set_color((255, 0, 0),"tape")
                     print("set red")
