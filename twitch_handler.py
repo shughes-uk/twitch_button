@@ -20,7 +20,7 @@ class TwitchHandler(object):
         self.streamers = {}
         self.follower_cache = {}
         self.thread = threading.Thread(target=self.run)
-        self.twitch = TwitchTV_b(logger=logging.getLogger("TwitchAPI"))
+        #self.twitch = TwitchTV_b(logger=logging.getLogger("TwitchAPI"))
         self.running = False
         for name in name_list:
             self.streamers[name] = False
