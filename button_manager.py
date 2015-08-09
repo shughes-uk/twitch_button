@@ -203,7 +203,7 @@ class Manager(object):
                 self.button.flash((255,0,0),(0,255,0),count=10)
         else:
             self.next_profile();
-            self.button.send_color(self.get_color())
+            self.set_color(self.get_color(),"button")
             self.logger.info('Selected next profile : %s' %self.profiles[self.current_profile]["obs_profile"])
             self.state = 'idle'
 
@@ -228,7 +228,7 @@ class Manager(object):
         if self.button:
             if self.button.pressed:
                 self.state = 'streaming_pressed'
-                self.button.send_color(self.get_color())
+                self.set_color(self.get_color(),"button")
         if not self.obsremote.streaming:
             self.finish_stream()
             self.state = 'idle'
