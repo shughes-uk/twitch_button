@@ -83,7 +83,7 @@ class Manager(object):
 
     def new_follower(self,name):
         if self.get_twitch_name() == name:
-            self.tape.flash((255,20,147),(255,0,0),20,1)
+            self.tape.flash((255,20,147),(255,0,0),20,0.1)
 
     def run(self):
         self.logger.info("Running")
@@ -239,7 +239,7 @@ class Manager(object):
                 if not self.twitch_handler.streamers[self.get_twitch_name()]:
                     if self.button.current_color != self.get_color():
                         self.set_color(self.get_color(),"button")
-                        self.set_color(self.get_color(),"tape")
+                        self.set_color((67, 162, 202),"tape")
                 elif self.button.current_color != self.get_color():
                     self.set_color(self.get_color(),"button")
                     self.set_color((67, 162, 202),"tape")
