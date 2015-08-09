@@ -252,7 +252,7 @@ class Manager(object):
                     if self.button.current_color != (255,0,0):
                         self.set_color((255,0,0),"button")
                         self.set_color((255, 0, 0),"tape")
-                elif self.button.current_color != (0,255,0):
+                elif self.button.current_color != (0,125,0):
                     self.set_color((0,125,0),"button")
                     self.set_color((67, 162, 202),"tape")
             elif self.button.current_color != self.get_color():
