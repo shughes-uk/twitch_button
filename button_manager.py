@@ -235,23 +235,30 @@ class Manager(object):
             self.set_color(self.get_color(),"button")
             self.set_color((0, 0, 0),"tape")
         elif round(time()) % 2 == 0:
-            print('1')
             if self.twitch_handler:
-                if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != self.get_color():
-                    self.set_color(self.get_color(),"button")
-                    self.set_color(self.get_color(),"tape")
+                if not self.twitch_handler.streamers[self.get_twitch_name()]:
+                    if self.button.current_color != self.get_color():
+                        self.set_color(self.get_color(),"button")
+                        self.set_color(self.get_color(),"tape")
                 elif self.button.current_color != self.get_color():
                     self.set_color(self.get_color(),"button")
                     self.set_color((0, 255, 0),"tape")
+            elif self.button.current_color != self.get_color():
+                self.set_color(self.get_color(),"button")
+                self.set_color((0, 255, 0),"tape")
+
         elif round(time()) % 2 == 1:
             if self.twitch_handler:
-                if not self.twitch_handler.streamers[self.get_twitch_name()] and self.button.current_color != (255,0,0):
-                    self.set_color((255,0,0),"button")
-                    self.set_color((255, 0, 0),"tape")
+                if not self.twitch_handler.streamers[self.get_twitch_name()]:
+                    if self.button.current_color != (255,0,0):
+                        self.set_color((255,0,0),"button")
+                        self.set_color((255, 0, 0),"tape")
                 elif self.button.current_color != (0,255,0):
                     self.set_color((0,255,0),"button")
                     self.set_color((0,255,0),"tape")
-
+            elif self.button.current_color != self.get_color():
+                self.set_color(self.get_color(),"button")
+                self.set_color((0, 255, 0),"tape")
 
     def handle_streaming_pressed(self):
         if self.button.pressed:
