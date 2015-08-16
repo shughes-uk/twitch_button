@@ -64,7 +64,7 @@ class Manager(object):
         else:
             self.tape = None
         if self.config["phillips_hue"]["enabled"]:
-            Exception("Hue not implemented yet")
+            self.hue = Hue(config["phillips_hue"]["bridge_ip"])
 
     def setup_obs(self):
         self.obsremote = OBSRemote("ws://%s:4444" %self.config["obs_integration"]["ip"])
@@ -83,7 +83,11 @@ class Manager(object):
 
     def new_follower(self,name):
         if self.get_twitch_name() == name:
-            self.tape.flash((255,20,147),(255,0,0),20,0.1)
+            if self.tape:
+                self.tape.flash((255,20,147),(255,0,0),20,0.1,True)
+            if self.hue:
+                self.hue.flash((255,20,147),(255,0,0),20,0.1,True)
+
 
     def run(self):
         self.logger.info("Running")

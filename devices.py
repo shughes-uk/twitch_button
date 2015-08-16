@@ -26,7 +26,7 @@ ALL_ON = [[0b11110001, 0x23, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 ALL_OFF = [[0b11110001, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 
 
-import platform, math
+import platform, math, copy
 import pywinusb.hid as hid
 from time import time, sleep
 import pythoncom, pyHook , threading, win32event, logging
@@ -41,14 +41,18 @@ class Device(object):
     def set_color(self,color):
         raise Exception("Function not implemented , whoops")
 
-    def flash(self,color_1,color_2,ntimes=10,interval=0.2):
-        old_color = self.current_color
-        for x in range (ntimes):
-            self.set_color(color_1)
-            sleep(interval)
-            self.set_color(color_2)
-            sleep(interval)
-        self.set_color(old_color)
+    def flash(self,color_1,color_2,ntimes=10,interval=0.2,nonblocking = False):
+        if nonblocking:
+            threading.thread.start_new_thread(self.flash,[color_1,color_2,ntimes,interval])
+            return
+        else:
+            old_color = self.current_color
+            for x in range (ntimes):
+                self.set_color(color_1)
+                sleep(interval)
+                self.set_color(color_2)
+                sleep(interval)
+            self.set_color(old_color)
 
     def start(self):
         raise Exception("Function not implemented, whoops")
@@ -109,17 +113,50 @@ class KeyboardButton(threading.Thread,Device):
 
 class Hue(Device):
     def __init__(self,ip):
-        super(Hub, self).__init__()
+        super(Hue, self).__init__()
         self.logger = logging.getLogger("Hue")
         self.bridge = Bridge(ip)
+        self.current_phue_status = {}
+        for l in self.bridge.lights:
+            self.current_phue_status[l.name] = {"on" : l.on, "brightness" : l.brightness, "xy" : l.xy}
+
+    def flash(self,color_1,color_2,ntimes=10,interval=0.2,nonblocking = False):
+        if nonblocking:
+            threading.thread.start_new_thread(self.flash,[color_1,color_2,ntimes,interval])
+            return
+        else:
+            old_phue_status = copy.deepcopy(self.current_phue_status)
+            print old_phue_status
+            for x in range (ntimes):
+                self.set_color(color_1)
+                sleep(interval)
+                self.set_color(color_2)
+                sleep(interval)
+            #restore old status
+            for l in self.bridge.lights:
+                l.xy = old_phue_status[l.name]["xy"]
+                l.on = old_phue_status[l.name]["on"]
+            print old_phue_status
+            self.current_phue_status = old_phue_status
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
 
     def set_color(self,rgb):
         self.current_color = rgb
         for l in self.bridge.lights:
             l.transitiontime = 1
-            l.brightness = 254
-            l.xy = self._RGBtoXY(rgb[0],rgb[1],rbg[2])
-
+            if rgb == (0,0,0):
+                l.on = False
+            else:
+                l.on = True
+                xy = self._RGBtoXY(rgb[0],rgb[1],rgb[2])
+                l.xy = xy
+                self.current_phue_status[l.name]["xy"] = xy
+                self.current_phue_status[l.name]["on"] = l.on
 
     def _enhancecolor(self,normalized):
         if normalized > 0.04045:
@@ -132,9 +169,9 @@ class Hue(Device):
         gNorm = g / 255.0
         bNorm = b / 255.0
 
-        rFinal = EnhanceColor(rNorm)
-        gFinal = EnhanceColor(gNorm)
-        bFinal = EnhanceColor(bNorm)
+        rFinal = self._enhancecolor(rNorm)
+        gFinal = self._enhancecolor(gNorm)
+        bFinal = self._enhancecolor(bNorm)
 
         X = rFinal * 0.649926 + gFinal * 0.103455 + bFinal * 0.197109
         Y = rFinal * 0.234327 + gFinal * 0.743075 + bFinal * 0.022598
