@@ -26,10 +26,11 @@ ALL_ON = [[0b11110001, 0x23, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 ALL_OFF = [[0b11110001, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00]]
 
 
-import platform
+import platform, math
 import pywinusb.hid as hid
 from time import time, sleep
 import pythoncom, pyHook , threading, win32event, logging
+from phue import Bridge
 
 class Device(object):
     def __init__(self):
@@ -104,6 +105,48 @@ class KeyboardButton(threading.Thread,Device):
             self.pressed = False
             self.pressedTime = 0
         return True
+
+
+class Hue(Device):
+    def __init__(self,ip):
+        super(Hub, self).__init__()
+        self.logger = logging.getLogger("Hue")
+        self.bridge = Bridge(ip)
+
+    def set_color(self,rgb):
+        self.current_color = rgb
+        for l in self.bridge.lights:
+            l.transitiontime = 1
+            l.brightness = 254
+            l.xy = self._RGBtoXY(rgb[0],rgb[1],rbg[2])
+
+
+    def _enhancecolor(self,normalized):
+        if normalized > 0.04045:
+            return math.pow( (normalized + 0.055) / (1.0 + 0.055), 2.4)
+        else:
+            return normalized / 12.92
+
+    def _RGBtoXY(self,r, g, b):
+        rNorm = r / 255.0
+        gNorm = g / 255.0
+        bNorm = b / 255.0
+
+        rFinal = EnhanceColor(rNorm)
+        gFinal = EnhanceColor(gNorm)
+        bFinal = EnhanceColor(bNorm)
+
+        X = rFinal * 0.649926 + gFinal * 0.103455 + bFinal * 0.197109
+        Y = rFinal * 0.234327 + gFinal * 0.743075 + bFinal * 0.022598
+        Z = rFinal * 0.000000 + gFinal * 0.053077 + bFinal * 1.035763
+
+        if X + Y + Z == 0:
+            return (0,0)
+        else:
+            xFinal = X / (X + Y + Z)
+            yFinal = Y / (X + Y + Z)
+
+            return (xFinal, yFinal)
 
 
 class UsbButtonButton(Device):
