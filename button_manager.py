@@ -86,7 +86,7 @@ class Manager(object):
             if self.tape:
                 self.tape.flash((255,20,147),(255,0,0),20,0.1,True)
             if self.hue:
-                self.hue.flash((255,20,147),(255,0,0),20,0.1,True)
+                self.hue.flash((255,20,147),(255,0,0),20,0.1)
 
 
     def run(self):

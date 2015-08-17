@@ -32,6 +32,8 @@ from time import time, sleep
 import pythoncom, pyHook , threading, win32event, logging
 from phue import Bridge
 
+lock = threading.Lock()
+
 class Device(object):
     def __init__(self):
         super(Device, self).__init__()
@@ -43,7 +45,8 @@ class Device(object):
 
     def flash(self,color_1,color_2,ntimes=10,interval=0.2,nonblocking = False):
         if nonblocking:
-            threading.thread.start_new_thread(self.flash,[color_1,color_2,ntimes,interval])
+            t = threading.Thread(target=self.flash,args=(color_1,color_2,ntimes,interval))
+            t.start()
             return
         else:
             old_color = self.current_color
@@ -122,11 +125,11 @@ class Hue(Device):
 
     def flash(self,color_1,color_2,ntimes=10,interval=0.2,nonblocking = False):
         if nonblocking:
-            threading.thread.start_new_thread(self.flash,[color_1,color_2,ntimes,interval])
+            t = threading.Thread(target=self.flash,args=(color_1,color_2,ntimes,interval))
+            t.start()
             return
         else:
             old_phue_status = copy.deepcopy(self.current_phue_status)
-            print old_phue_status
             for x in range (ntimes):
                 self.set_color(color_1)
                 sleep(interval)
@@ -136,7 +139,6 @@ class Hue(Device):
             for l in self.bridge.lights:
                 l.xy = old_phue_status[l.name]["xy"]
                 l.on = old_phue_status[l.name]["on"]
-            print old_phue_status
             self.current_phue_status = old_phue_status
 
     def start(self):
@@ -146,17 +148,18 @@ class Hue(Device):
         pass
 
     def set_color(self,rgb):
-        self.current_color = rgb
-        for l in self.bridge.lights:
-            l.transitiontime = 1
-            if rgb == (0,0,0):
-                l.on = False
-            else:
-                l.on = True
-                xy = self._RGBtoXY(rgb[0],rgb[1],rgb[2])
-                l.xy = xy
-                self.current_phue_status[l.name]["xy"] = xy
-                self.current_phue_status[l.name]["on"] = l.on
+        with lock:
+            self.current_color = rgb
+            for l in self.bridge.lights:
+                l.transitiontime = 1
+                if rgb == (0,0,0):
+                    l.on = False
+                else:
+                    l.on = True
+                    xy = self._RGBtoXY(rgb[0],rgb[1],rgb[2])
+                    l.xy = xy
+                    self.current_phue_status[l.name]["xy"] = xy
+                    self.current_phue_status[l.name]["on"] = l.on
 
     def _enhancecolor(self,normalized):
         if normalized > 0.04045:
@@ -217,20 +220,21 @@ class UsbButtonButton(Device):
             self.report.send([0x00,0x02,0x00,0x00,0x00])
 
     def set_color(self,rgb):
-        if self.device:
-            if not self.device.is_plugged():
-                self.connected = False
-                self.report = None
-                self.device = None
-                self.logger.warn("Usb Button possibly unplugged")
-                return
-            self.logger.debug("Sending color R%i,G%i,B%i" %(rgb[0], rgb[1], rgb[2]))
-            self.report.send([0,80,221,0,0])
-            self.report.send([0,rgb[0],rgb[1],rgb[2],rgb[0]])
-            self.report.send([0,rgb[1],rgb[2],0,0])
-            for x in range(1,14):
-                self.report.send([0,0,0,0,0])
-            self.current_color = rgb
+        with lock:
+            if self.device:
+                if not self.device.is_plugged():
+                    self.connected = False
+                    self.report = None
+                    self.device = None
+                    self.logger.warn("Usb Button possibly unplugged")
+                    return
+                self.logger.debug("Sending color R%i,G%i,B%i" %(rgb[0], rgb[1], rgb[2]))
+                self.report.send([0,80,221,0,0])
+                self.report.send([0,rgb[0],rgb[1],rgb[2],rgb[0]])
+                self.report.send([0,rgb[1],rgb[2],0,0])
+                for x in range(1,14):
+                    self.report.send([0,0,0,0,0])
+                self.current_color = rgb
 
     def start(self):
         self.logger.info("Searching for button")
@@ -436,10 +440,11 @@ class BlinkyTape(Device):
 
     def set_color(self, rgb):
         """Fills [ledCount] pixels with RGB color and shows it."""
-        for i in range(self.ledCount):
-            self.sendPixel(rgb[0], rgb[1], rgb[2])
-        self.current_color = rgb
-        self.show()
+        with lock:
+            for i in range(self.ledCount):
+                self.sendPixel(rgb[0], rgb[1], rgb[2])
+            self.current_color = rgb
+            self.show()
 
     def resetToBootloader(self):
         """Initiates a reset on BlinkyTape.
