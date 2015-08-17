@@ -32,13 +32,13 @@ from time import time, sleep
 import pythoncom, pyHook , threading, win32event, logging
 from phue import Bridge
 
-lock = threading.Lock()
 
 class Device(object):
     def __init__(self):
         super(Device, self).__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.current_color = (0,0,0)
+        self.lock = threading.Lock()
 
     def set_color(self,color):
         raise Exception("Function not implemented , whoops")
@@ -148,7 +148,7 @@ class Hue(Device):
         pass
 
     def set_color(self,rgb):
-        with lock:
+        with self.lock:
             self.current_color = rgb
             for l in self.bridge.lights:
                 l.transitiontime = 1
@@ -220,7 +220,7 @@ class UsbButtonButton(Device):
             self.report.send([0x00,0x02,0x00,0x00,0x00])
 
     def set_color(self,rgb):
-        with lock:
+        with self.lock:
             if self.device:
                 if not self.device.is_plugged():
                     self.connected = False
@@ -440,7 +440,7 @@ class BlinkyTape(Device):
 
     def set_color(self, rgb):
         """Fills [ledCount] pixels with RGB color and shows it."""
-        with lock:
+        with self.lock:
             for i in range(self.ledCount):
                 self.sendPixel(rgb[0], rgb[1], rgb[2])
             self.current_color = rgb
