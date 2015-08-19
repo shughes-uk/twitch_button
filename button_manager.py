@@ -65,6 +65,7 @@ class Manager(object):
             self.tape = None
         if self.config["phillips_hue"]["enabled"]:
             self.hue = Hue(config["phillips_hue"]["bridge_ip"])
+            self.devices.append(self.hue)
 
     def setup_obs(self):
         self.obsremote = OBSRemote("ws://%s:4444" %self.config["obs_integration"]["ip"])
@@ -72,7 +73,7 @@ class Manager(object):
 
     def set_color(self,color,device):
         if device == "all":
-            for device in devices:
+            for device in self.devices:
                 device.set_color(color)
         if device == "tape" and self.tape:
             self.tape.set_color(color)
