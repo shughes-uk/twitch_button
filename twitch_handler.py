@@ -3,12 +3,19 @@ import threading, logging
 from time import sleep
 from urllib import quote_plus
 from pprint import pprint
+
 class TwitchTV_b(TwitchTV):
     def getLatestFollower(self, username):
         acc = []
         quotedUsername = quote_plus(username)
         url = "https://api.twitch.tv/kraken/channels/%s/follows/?direction=DESC&limit=1&offset=0" %username
         acc = self._fetchItems(url, 'follows')
+        return acc
+
+    def searchStreams(self, query, offset=0, limit=10):
+        quotedQuery = quote_plus(query)
+        url = "https://api.twitch.tv/kraken/streams/%s" %query
+        acc  = self._fetchItems(url,"stream")
         return acc
 
 class TwitchHandler(object):
@@ -37,15 +44,14 @@ class TwitchHandler(object):
         while self.running:
             for name in self.streamers.keys():
                 if self.watch_streaming:
-                    result = [x for x in self.twitch.searchStreams(name) if x['channel']['name'] == name]
+                    result = self.twitch.searchStreams(name)
                     if result:
                         if not self.streamers[name]:
                             self.logger.info("%s is now live on twitch" %name)
                             self.streamers[name] = True
-                    else:
-                        if self.streamers[name]:
-                            self.logger.info("%s is no longer live on twitch" %name)
-                            self.streamers[name] = False
+                    elif self.streamers[name]:
+                        self.logger.info("%s is no longer live on twitch" %name)
+                        self.streamers[name] = False
                 if self.nf_callback:
                     lastFollower_id = self.twitch.getLatestFollower(name)[0]['user']['_id']
                     if lastFollower_id != self.follower_cache[name]:
