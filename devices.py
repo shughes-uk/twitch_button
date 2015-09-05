@@ -39,6 +39,7 @@ class Device(object):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.current_color = (0,0,0)
         self.lock = threading.Lock()
+        self.flashlock = threading.Lock()
 
     def set_color(self,color):
         raise Exception("Function not implemented , whoops")
@@ -49,13 +50,14 @@ class Device(object):
             t.start()
             return
         else:
-            old_color = self.current_color
-            for x in range (ntimes):
-                self.set_color(color_1)
-                sleep(interval)
-                self.set_color(color_2)
-                sleep(interval)
-            self.set_color(old_color)
+            with self.flashlock:
+                old_color = self.current_color
+                for x in range (ntimes):
+                    self.set_color(color_1)
+                    sleep(interval)
+                    self.set_color(color_2)
+                    sleep(interval)
+                self.set_color(old_color)
 
     def start(self):
         raise Exception("Function not implemented, whoops")
@@ -120,8 +122,7 @@ class Hue(Device):
         self.logger = logging.getLogger("Hue")
         self.bridge = Bridge(ip)
         self.current_phue_status = {}
-        for l in self.bridge.lights:
-            self.current_phue_status[l.name] = {"on" : l.on, "brightness" : l.brightness, "xy" : l.xy}
+        self.current_color = self.XYtoRGB(self.bridge.lights[0].xy[0],self.bridge.lights[0].xy[1])
 
     def flash(self,color_1,color_2,ntimes=10,interval=0.2,nonblocking = False):
         if nonblocking:
@@ -129,17 +130,21 @@ class Hue(Device):
             t.start()
             return
         else:
-            old_phue_status = copy.deepcopy(self.current_phue_status)
-            for x in range (ntimes):
-                self.set_color(color_1)
-                sleep(interval)
-                self.set_color(color_2)
-                sleep(interval)
-            #restore old status
-            for l in self.bridge.lights:
-                l.xy = old_phue_status[l.name]["xy"]
-                l.on = old_phue_status[l.name]["on"]
-            self.current_phue_status = old_phue_status
+            with self.flashlock:
+                #store the old states
+                old_colors = {}
+                for l in self.bridge.lights:
+                    old_colors[l] = (l.xy,l.brightness)
+                #flash a bunch
+                for x in range (ntimes):
+                    self.set_color(rgb=color_1, brightness=254)
+                    sleep(interval)
+                    self.set_color(rgb=color_2, brightness=254)
+                    sleep(interval)
+                #reset to old states
+                for l in self.bridge.lights:
+                    l.xy = old_colors[l][0]
+                    l.brightness = old_colors[l][1]
 
     def start(self):
         pass
@@ -147,25 +152,32 @@ class Hue(Device):
     def stop(self):
         pass
 
-    def set_color(self,rgb):
+    def set_color(self,rgb=None,xy=None,brightness=None):
         with self.lock:
-            self.current_color = rgb
             for l in self.bridge.lights:
                 l.transitiontime = 1
-                if rgb == (0,0,0):
-                    l.on = False
-                else:
-                    l.on = True
-                    xy = self._RGBtoXY(rgb[0],rgb[1],rgb[2])
+                if rgb:
+                    if rgb == (0,0,0):
+                        l.on = False
+                    else:
+                        l.on = True
+                        xy = self._RGBtoXY(rgb[0],rgb[1],rgb[2])
+                        l.xy = xy
+                        self.current_color = rgb
+                elif xy:
                     l.xy = xy
-                    self.current_phue_status[l.name]["xy"] = xy
-                    self.current_phue_status[l.name]["on"] = l.on
+                    self.current_color = self._XYtoRGB(xy[0],xy[1])
+                if brightness
+                    l.brightness = brightness
 
     def _enhancecolor(self,normalized):
         if normalized > 0.04045:
             return math.pow( (normalized + 0.055) / (1.0 + 0.055), 2.4)
         else:
             return normalized / 12.92
+
+    def _XYtoRGB(self,x,y):
+        return (0,0,0)
 
     def _RGBtoXY(self,r, g, b):
         rNorm = r / 255.0
