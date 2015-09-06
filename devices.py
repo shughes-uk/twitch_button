@@ -31,6 +31,7 @@ import pywinusb.hid as hid
 from time import time, sleep
 import pythoncom, pyHook , threading, win32event, logging
 from phue import Bridge
+from hue_helper import ColorHelper
 
 
 class Device(object):
@@ -122,7 +123,10 @@ class Hue(Device):
         self.logger = logging.getLogger("Hue")
         self.bridge = Bridge(ip)
         self.current_phue_status = {}
-        self.current_color = self.XYtoRGB(self.bridge.lights[0].xy[0],self.bridge.lights[0].xy[1])
+        self.chelper = ColorHelper()
+        self.current_color = self._XYtoRGB(self.bridge.lights[0].xy[0],self.bridge.lights[0].xy[1],self.bridge.lights[0].brightness)
+
+
 
     def flash(self,color_1,color_2,ntimes=10,interval=0.2,nonblocking = False):
         if nonblocking:
@@ -167,7 +171,7 @@ class Hue(Device):
                 elif xy:
                     l.xy = xy
                     self.current_color = self._XYtoRGB(xy[0],xy[1])
-                if brightness
+                if brightness:
                     l.brightness = brightness
 
     def _enhancecolor(self,normalized):
@@ -176,29 +180,11 @@ class Hue(Device):
         else:
             return normalized / 12.92
 
-    def _XYtoRGB(self,x,y):
-        return (0,0,0)
+    def _XYtoRGB(self,x,y,brightness):
+        self.chelper.getRGBFromXYAndBrightness(x, y, brightness)
 
     def _RGBtoXY(self,r, g, b):
-        rNorm = r / 255.0
-        gNorm = g / 255.0
-        bNorm = b / 255.0
-
-        rFinal = self._enhancecolor(rNorm)
-        gFinal = self._enhancecolor(gNorm)
-        bFinal = self._enhancecolor(bNorm)
-
-        X = rFinal * 0.649926 + gFinal * 0.103455 + bFinal * 0.197109
-        Y = rFinal * 0.234327 + gFinal * 0.743075 + bFinal * 0.022598
-        Z = rFinal * 0.000000 + gFinal * 0.053077 + bFinal * 1.035763
-
-        if X + Y + Z == 0:
-            return (0,0)
-        else:
-            xFinal = X / (X + Y + Z)
-            yFinal = Y / (X + Y + Z)
-
-            return (xFinal, yFinal)
+        self.chelper.getXYPointFromRGB(r, g, b)
 
 
 class UsbButtonButton(Device):
