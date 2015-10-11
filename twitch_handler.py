@@ -61,10 +61,9 @@ class TwitchHandler(object):
         for name in self.streamers:
             lastfollower = twitch.follows.by_channel(name, limit=1)
             if lastfollower != self.follower_cache[name]:
-                self.logger.info("%s has a new follower!" % name)
                 self.follower_cache[name] = lastfollower
                 for callback in self.follower_callbacks:
-                    callback(name)
+                    callback(lastfollower)
 
     def stop(self):
         self.logger.info("Attempting to stop twitch api polling")
