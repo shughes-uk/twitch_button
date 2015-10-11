@@ -1,19 +1,20 @@
-
-
-from time import sleep
-import thread
 import os
 from obsremote import OBSRemote
 from usbbuttons import AvrMediaButton
 import logging
 
 buttonpressed = False
+
+
 def callbk():
     global buttonpressed
     buttonpressed = True
 
+
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO,format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",datefmt="%H:%M:%S")
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s.%(msecs)d %(levelname)s %(name)s : %(message)s",
+                        datefmt="%H:%M:%S")
     logger = logging.getLogger("Main")
     try:
         x = OBSRemote("ws://192.168.1.107:4444")
@@ -51,4 +52,3 @@ if __name__ == '__main__':
         except:
             pass
     os.system("pause")
-    

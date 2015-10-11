@@ -16,15 +16,18 @@ import serial
 # For Python3 support- always run strings through a bytes converter
 import sys
 if sys.version_info < (3,):
+
     def encode(x):
         return x
 else:
     import codecs
+
     def encode(x):
         return codecs.latin_1_encode(x)[0]
 
 
 class BlinkyTape(object):
+
     def __init__(self, port, ledCount=60, buffered=True):
         """Creates a BlinkyTape object and opens the port.
 
@@ -52,7 +55,7 @@ class BlinkyTape(object):
         self.buf = ""
         self.serial = serial.Serial(port, 115200)
         self.show()  # Flush any incomplete data
-        self.current_color = (0,0,0)
+        self.current_color = (0, 0, 0)
 
     def send_list(self, colors):
         if len(colors) > self.ledCount:
@@ -120,7 +123,7 @@ class BlinkyTape(object):
 
             self.buf += control
             for i in range(0, len(self.buf), CHUNK_SIZE):
-                self.serial.write(encode(self.buf[i:i+CHUNK_SIZE]))
+                self.serial.write(encode(self.buf[i:i + CHUNK_SIZE]))
                 self.serial.flush()
 
             self.buf = ""
@@ -134,7 +137,7 @@ class BlinkyTape(object):
         """Fills [ledCount] pixels with RGB color and shows it."""
         for i in range(0, self.ledCount):
             self.sendPixel(r, g, b)
-        self.current_color = (r,g,b)
+        self.current_color = (r, g, b)
         self.show()
 
     def resetToBootloader(self):
@@ -149,7 +152,6 @@ class BlinkyTape(object):
         """Safely closes the serial port."""
         self.serial.close()
 
-
 # Example code
 
 if __name__ == "__main__":
@@ -158,10 +160,8 @@ if __name__ == "__main__":
     import optparse
 
     parser = optparse.OptionParser()
-    parser.add_option("-p", "--port", dest="portname",
-                      help="serial port (ex: /dev/ttyUSB0)", default=None)
-    parser.add_option("-c", "--ledcount", dest="ledcount",
-                      help="number of LEDs attached", type="int", default=60)
+    parser.add_option("-p", "--port", dest="portname", help="serial port (ex: /dev/ttyUSB0)", default=None)
+    parser.add_option("-c", "--ledcount", dest="ledcount", help="number of LEDs attached", type="int", default=60)
     parser.add_option("-b", action="store_true", default="True", dest="buffered")
     parser.add_option("-u", action="store_false", dest="buffered")
 

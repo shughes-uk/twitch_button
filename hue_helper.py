@@ -8,7 +8,6 @@ import math
 import random
 from collections import namedtuple
 
-
 # Represents a CIE 1931 XY coordinate pair.
 XYPoint = namedtuple('XYPoint', ['x', 'y'])
 
@@ -112,9 +111,9 @@ class ColorHelper:
         """Returns an XYPoint object containing the closest available CIE 1931 coordinates
         based on the RGB input values."""
 
-        r = ((red + 0.055) / (1.0 + 0.055))**2.4 if (red > 0.04045) else (red / 12.92)
-        g = ((green + 0.055) / (1.0 + 0.055))**2.4 if (green > 0.04045) else (green / 12.92)
-        b = ((blue + 0.055) / (1.0 + 0.055))**2.4 if (blue > 0.04045) else (blue / 12.92)
+        r = ((red + 0.055) / (1.0 + 0.055)) ** 2.4 if (red > 0.04045) else (red / 12.92)
+        g = ((green + 0.055) / (1.0 + 0.055)) ** 2.4 if (green > 0.04045) else (green / 12.92)
+        b = ((blue + 0.055) / (1.0 + 0.055)) ** 2.4 if (blue > 0.04045) else (blue / 12.92)
 
         X = r * 0.4360747 + g * 0.3850649 + b * 0.0930804
         Y = r * 0.2225045 + g * 0.7168786 + b * 0.0406169
@@ -155,15 +154,13 @@ class ColorHelper:
         Z = (Y / xyPoint.y) * (1 - xyPoint.x - xyPoint.y)
 
         # Convert to RGB using Wide RGB D65 conversion.
-        r =  X * 1.612 - Y * 0.203 - Z * 0.302
+        r = X * 1.612 - Y * 0.203 - Z * 0.302
         g = -X * 0.509 + Y * 1.412 + Z * 0.066
-        b =  X * 0.026 - Y * 0.072 + Z * 0.962
+        b = X * 0.026 - Y * 0.072 + Z * 0.962
 
         # Apply reverse gamma correction.
         r, g, b = map(
-            lambda x: (12.92 * x) if (x <= 0.0031308) else ((1.0 + 0.055) * pow(x, (1.0 / 2.4)) - 0.055),
-            [r, g, b]
-        )
+            lambda x: (12.92 * x) if (x <= 0.0031308) else ((1.0 + 0.055) * pow(x, (1.0 / 2.4)) - 0.055), [r, g, b])
 
         # Bring all negative components to zero.
         r, g, b = map(lambda x: max(0, x), [r, g, b])
