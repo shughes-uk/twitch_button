@@ -291,7 +291,8 @@ class Manager(object):
                 self.twitch_handler.stop()
         if self.highlights:
             self.logger.info("Writing highlight times to file")
-            h_file = open("%s\%s_highlights.txt"%(self.config["obs_integration"]["highlights_dir"], self.starttime.strftime('%Y-%m-%d-%H%M-%S')),'a')
+            h_file = open("%s\%s_highlights.txt" % (self.config["obs_integration"]["highlights_dir"],
+                                                    self.starttime.strftime('%Y-%m-%d-%H%M-%S')), 'a')
             for highlight in self.highlights:
                 h_file.write(str(timedelta(milliseconds=highlight)) + '\n')
             h_file.close()
