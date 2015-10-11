@@ -14,6 +14,7 @@ class TwitchHandler(object):
         self.running = False
         self.follower_callbacks = []
         self.streaming_callbacks = []
+        self.online_status = {}
         for name in name_list:
             if twitch.streams.by_channel(name).get("stream"):
                 self.online_status[name] = True
