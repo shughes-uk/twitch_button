@@ -1,37 +1,31 @@
-from twitch import TwitchTV
-import threading, logging
+from twitch.api import v3 as twitch
+import threading
+import logging
 from time import sleep
-from urllib import quote_plus
-from pprint import pprint
 
-class TwitchTV_b(TwitchTV):
-    def getLatestFollower(self, username):
-        acc = []
-        quotedUsername = quote_plus(username)
-        url = "https://api.twitch.tv/kraken/channels/%s/follows/?direction=DESC&limit=1&offset=0" %username
-        acc = self._fetchItems(url, 'follows')
-        return acc
-
-    def searchStreams(self, query, offset=0, limit=10):
-        quotedQuery = quote_plus(query)
-        url = "https://api.twitch.tv/kraken/streams/%s" %query
-        acc  = self._fetchItems(url,"stream")
-        return acc
 
 class TwitchHandler(object):
-    def __init__(self,name_list,new_follower_callback = None,watch_streaming = True):
+
+    def __init__(self, name_list):
         super(TwitchHandler, self).__init__()
-        self.nf_callback = new_follower_callback
-        self.watch_streaming = watch_streaming
         self.logger = logging.getLogger("TwitchHandler")
-        self.streamers = {}
         self.follower_cache = {}
         self.thread = threading.Thread(target=self.run)
-        self.twitch = TwitchTV_b()
         self.running = False
+        self.follower_callbacks = []
+        self.streaming_callbacks = []
         for name in name_list:
-            self.streamers[name] = False
-            self.follower_cache[name]  = self.twitch.getLatestFollower(name)[0]['user']['_id']
+            if twitch.streams.by_channel(name).get("stream"):
+                self.online_status[name] = True
+            else:
+                self.online_status[name] = False
+            self.follower_cache[name] = twitch.follows.by_channel(name, limit=1)
+
+    def subscribe_new_follow(self, callback):
+        self.follower_callbacks.append(callback)
+
+    def subscribe_streaming_status(self, callback):
+        self.streaming_callbacks.append(callback)
 
     def start(self):
         self.running = True
@@ -41,24 +35,36 @@ class TwitchHandler(object):
     def run(self):
         self.logger.info("Starting twitch api polling")
         self.running = True
-        while self.running:
-            for name in self.streamers.keys():
-                if self.watch_streaming:
-                    result = self.twitch.searchStreams(name)
-                    if result:
-                        if not self.streamers[name]:
-                            self.logger.info("%s is now live on twitch" %name)
-                            self.streamers[name] = True
-                    elif self.streamers[name]:
-                        self.logger.info("%s is no longer live on twitch" %name)
-                        self.streamers[name] = False
-                if self.nf_callback:
-                    lastFollower_id = self.twitch.getLatestFollower(name)[0]['user']['_id']
-                    if lastFollower_id != self.follower_cache[name]:
-                        self.logger.info("%s has a new follower!" %name)
-                        self.follower_cache[name] = lastFollower_id
-                        self.nf_callback(name)
-            sleep(2)
+        if self.streaming_callbacks or self.follower_callbacks:
+            while self.running:
+                self.check_streaming()
+                if self.follower_callbacks:
+                    self.check_followers()
+                sleep(60)
+
+        else:
+            self.logger.critical("Not starting, no callbacks registered")
+
+    def check_streaming(self):
+        for name in self.streamers:
+            result = twitch.streams.by_channel.get("stream")
+            if result:
+                if not self.streamers[name]:
+                    self.streamers[name] = True
+                    for callback in self.streaming_callbacks:
+                        callback(name, True)
+            elif self.streamers[name]:
+                self.streamers[name] = False
+                for callback in self.streaming_callbacks:
+                    callback(name, False)
+
+    def check_followers(self):
+        for name in self.streamers:
+            lastfollower = twitch.follows.by_channel(name, limit=1)
+            if lastfollower != self.follower_cache[name]:
+                self.follower_cache[name] = lastfollower
+                for callback in self.follower_callbacks:
+                    callback(lastfollower, name)
 
     def stop(self):
         self.logger.info("Attempting to stop twitch api polling")
