@@ -126,8 +126,6 @@ class Hue(Device):
         self.chelper = ColorHelper()
         self.current_color = self._XYtoRGB(self.bridge.lights[0].xy[0],self.bridge.lights[0].xy[1],self.bridge.lights[0].brightness)
 
-
-
     def flash(self,color_1,color_2,ntimes=10,interval=0.2,nonblocking = False):
         if nonblocking:
             t = threading.Thread(target=self.flash,args=(color_1,color_2,ntimes,interval))
