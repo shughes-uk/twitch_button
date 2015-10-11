@@ -1,6 +1,7 @@
 from twitch.api import v3 as twitch
 import threading
 import logging
+from time import sleep
 
 
 class TwitchHandler(object):
@@ -34,12 +35,12 @@ class TwitchHandler(object):
     def run(self):
         self.logger.info("Starting twitch api polling")
         self.running = True
-        if self.streaming_callbacks and self.follower_callbacks:
+        if self.streaming_callbacks or self.follower_callbacks:
             while self.running:
-                if self.streaming_callbacks:
-                    self.check_streaming()
+                self.check_streaming()
                 if self.follower_callbacks:
                     self.check_followers()
+                sleep(60)
 
         else:
             self.logger.critical("Not starting, no callbacks registered")
@@ -63,7 +64,7 @@ class TwitchHandler(object):
             if lastfollower != self.follower_cache[name]:
                 self.follower_cache[name] = lastfollower
                 for callback in self.follower_callbacks:
-                    callback(lastfollower)
+                    callback(lastfollower, name)
 
     def stop(self):
         self.logger.info("Attempting to stop twitch api polling")
