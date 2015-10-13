@@ -47,20 +47,20 @@ class TwitchHandler(object):
             self.logger.critical("Not starting, no callbacks registered")
 
     def check_streaming(self):
-        for name in self.streamers:
+        for name in self.online_status:
             result = twitch.streams.by_channel.get("stream")
             if result:
-                if not self.streamers[name]:
-                    self.streamers[name] = True
+                if not self.online_status[name]:
+                    self.online_status[name] = True
                     for callback in self.streaming_callbacks:
                         callback(name, True)
-            elif self.streamers[name]:
-                self.streamers[name] = False
+            elif self.online_status[name]:
+                self.online_status[name] = False
                 for callback in self.streaming_callbacks:
                     callback(name, False)
 
     def check_followers(self):
-        for name in self.streamers:
+        for name in self.online_status:
             lastfollower = twitch.follows.by_channel(name, limit=1)
             if lastfollower != self.follower_cache[name]:
                 self.follower_cache[name] = lastfollower
