@@ -48,7 +48,7 @@ class TwitchHandler(object):
 
     def check_streaming(self):
         for name in self.online_status:
-            result = twitch.streams.by_channel.get("stream")
+            result = twitch.streams.by_channel(name).get("stream")
             if result:
                 if not self.online_status[name]:
                     self.online_status[name] = True
