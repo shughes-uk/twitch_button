@@ -141,7 +141,7 @@ class Hue(Device):
                 # store the old states
                 old_colors = {}
                 for l in self.bridge.lights:
-                    old_colors[l] = (l.xy, l.brightness)
+                    old_colors[l] = (l.xy, l.brightness, l.on)
                 # flash a bunch
                 for x in range(ntimes):
                     self.set_color(rgb=color_1, brightness=254)
@@ -150,8 +150,12 @@ class Hue(Device):
                     sleep(interval)
                 # reset to old states
                 for l in self.bridge.lights:
-                    l.xy = old_colors[l][0]
-                    l.brightness = old_colors[l][1]
+                    if old_colors[l][0]:
+                        l.xy = old_colors[l][0]
+                    if old_colors[l][1]:
+                        l.brightness = old_colors[l][1]
+                    if old_colors[l][2]:
+                        l.on = old_colors[l][2]
 
     def start(self):
         pass
