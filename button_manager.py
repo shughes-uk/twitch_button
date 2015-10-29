@@ -114,7 +114,6 @@ class Manager(object):
             pass
         finally:
             self.logger.info("Shutting down")
-            # self.obsremote.stop_streaming(self.preview)
             self.obsremote.stop()
             if self.button:
                 self.set_color((0, 0, 0), "button")
