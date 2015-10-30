@@ -131,7 +131,9 @@ class Hue(Device):
         self.current_color = self._XYtoRGB(self.bridge.lights[0].xy[0], self.bridge.lights[0].xy[1],
                                            self.bridge.lights[0].brightness)
 
-    def flash(self, color_1, color_2, ntimes=10, interval=0.2, nonblocking=False):
+    def flash(self, color_1, color_2, ntimes=10, interval=1, nonblocking=False):
+        if interval < 0.5:
+            interval = 0.5
         if nonblocking:
             t = threading.Thread(target=self.flash, args=(color_1, color_2, ntimes, interval))
             t.start()
