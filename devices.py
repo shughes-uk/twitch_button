@@ -11,9 +11,13 @@ class Device(object):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.current_color = (0, 0, 0)
         self.lock = threading.Lock()
-        self.flashlock = threading.Lock()
 
     def set_color(self, color):
+        with self.lock:
+            self.send_color(color)
+            self.current_color = color
+
+    def send_color(self, color):
         raise Exception("Function not implemented , whoops")
 
     def flash(self, color_1, color_2, ntimes=10, interval=0.2, nonblocking=False):
@@ -22,14 +26,14 @@ class Device(object):
             t.start()
             return
         else:
-            with self.flashlock:
+            with self.lock:
                 old_color = self.current_color
                 for x in range(ntimes):
-                    self.set_color(color_1)
+                    self.send_color(color_1)
                     sleep(interval)
-                    self.set_color(color_2)
+                    self.send_color(color_2)
                     sleep(interval)
-                self.set_color(old_color)
+                self.send_color(old_color)
 
     def start(self):
         raise Exception("Function not implemented, whoops")
@@ -68,22 +72,20 @@ class UsbButtonButton(Device):
                 return
             self.report.send([0x00, 0x02, 0x00, 0x00, 0x00])
 
-    def set_color(self, rgb):
-        with self.lock:
-            if self.device:
-                if not self.device.is_plugged():
-                    self.connected = False
-                    self.report = None
-                    self.device = None
-                    self.logger.warn("Usb Button possibly unplugged")
-                    return
-                self.logger.debug("Sending color R%i,G%i,B%i" % (rgb[0], rgb[1], rgb[2]))
-                self.report.send([0, 80, 221, 0, 0])
-                self.report.send([0, rgb[0], rgb[1], rgb[2], rgb[0]])
-                self.report.send([0, rgb[1], rgb[2], 0, 0])
-                for x in range(1, 14):
-                    self.report.send([0, 0, 0, 0, 0])
-                self.current_color = rgb
+    def send_color(self, rgb):
+        if self.device:
+            if not self.device.is_plugged():
+                self.connected = False
+                self.report = None
+                self.device = None
+                self.logger.warn("Usb Button possibly unplugged")
+                return
+            self.logger.debug("Sending color R%i,G%i,B%i" % (rgb[0], rgb[1], rgb[2]))
+            self.report.send([0, 80, 221, 0, 0])
+            self.report.send([0, rgb[0], rgb[1], rgb[2], rgb[0]])
+            self.report.send([0, rgb[1], rgb[2], 0, 0])
+            for x in range(1, 14):
+                self.report.send([0, 0, 0, 0, 0])
 
     def start(self):
         self.logger.info("Searching for button")
