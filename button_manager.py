@@ -80,10 +80,9 @@ class Manager(object):
 
     def setup_devices(self):
         self.devices = []
-        if self.config["ultimarc_button"]["enabled"]:
-            self.button = UsbButtonButton()
-            self.devices.append(self.button)
-            self.highlights = []
+        self.button = UsbButtonButton()
+        self.devices.append(self.button)
+        self.highlights = []
 
     def setup_obs(self):
         self.obsremote = OBSRemote("ws://%s:4444" % self.config["obs_integration"]["ip"])
