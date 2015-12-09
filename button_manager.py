@@ -58,7 +58,7 @@ class Manager(object):
         self.alternate_color2_time = datetime.now()
         self.starttime = datetime.now()
         self.preview = preview_only
-        self.last_recover_attempt = datetime.now()
+        self.next_recover_attempt = datetime.now() + timedelta(seconds=5)
         self.setup_twitch()
         self.setup_devices()
         self.setup_obs()
@@ -95,9 +95,11 @@ class Manager(object):
         if datetime.now() > self.alternate_color1_time:
             self.set_color(color1)
             self.alternate_color1_time = datetime.now() + timedelta(seconds=interval * 2)
+            self.alternate_color2_time = datetime.now() + timedelta(seconds=interval)
         elif datetime.now() > self.alternate_color2_time:
             self.set_color(color2)
             self.alternate_color2_time = datetime.now() + timedelta(seconds=interval * 2)
+            self.alternate_color1_time = datetime.now() + timedelta(seconds=interval)
 
     def run(self):
         self.logger.info("Running")
@@ -140,15 +142,14 @@ class Manager(object):
     def handle_button(self):
         if not self.button.connected and self.state != 'error':
             self.state = 'error'
-            self.logger.warn("Button appears to be disconnected , will try to find it again in 10 seconds")
+            self.logger.warn("Button appears to be disconnected , will try to find it every 5 seconds")
         else:
             self.button.update()
 
     def tick(self):
         if not self.obsremote.connected and self.state != 'error':
             self.state = 'error'
-            self.logger.warn("OBSRemote not connected, will retry in aprox 20 seconds")
-            return
+            self.logger.warn("OBSRemote not connected, will retry in every 5 seconds")
         elif self.obsremote.streaming and self.state not in STREAMING_STATES:
             self.state = 'streaming_idle'
             self.starttime = datetime.now()
@@ -176,16 +177,16 @@ class Manager(object):
         if self.obsremote.connected and self.button.connected:
             self.state = "idle"
         else:
+            if self.button.connected:
+                self.alternate_colors(RGB_OFF, RGB_RED)
             self.attempt_recovery()
 
     def attempt_recovery(self):
         if datetime.now() > self.next_recover_attempt:
             self.logger.warn("Attempting recovery")
-            self.next_recover_attempt = datetime.now() + timedelta(seconds=20)
+            self.next_recover_attempt = datetime.now() + timedelta(seconds=5)
             if not self.obsremote.connected:
                 self.obsremote.start()
-                if self.button.connected:
-                    self.alternate_colors(RGB_OFF, RGB_RED)
             if not self.button.connected:
                 self.button.start()
 
@@ -194,7 +195,7 @@ class Manager(object):
             if self.button.pressed:
                 self.state = 'profileselect'
             elif self.button.current_color != self.get_color():
-                self.set_color(self.get_color(), "button")
+                self.set_color(self.get_color())
 
     def handle_profileselect(self):
         if self.button.pressed:
@@ -207,10 +208,10 @@ class Manager(object):
                 self.state = 'waitunpressed'
                 self.nextstate.append('streaming_idle')
                 self.nextstate.append('wait_streaming')
-                self.button.flash(RGB_RED, RGB_GREEN)
+                self.button.flash(RGB_RED, RGB_GREEN, ntimes=5, interval=0.1)
         else:
             self.next_profile()
-            self.set_color(self.get_color(), "button")
+            self.set_color(self.get_color())
             self.logger.info('Selected next profile : %s' % self.profiles[self.current_profile]["obs_profile"])
             self.state = 'idle'
 
@@ -250,7 +251,7 @@ class Manager(object):
                 self.nextstate.append('idle')
                 self.nextstate.append('wait_stop_streaming')
                 self.finish_stream()
-                self.button.flash(self.get_color(), RGB_RED)
+                self.button.flash(self.get_color(), RGB_RED, ntimes=5, interval=0.1)
         else:
             self.state = 'streaming_idle'
             self.logger.info("Highlight created @ %s" % self.obsremote.streamTime)
@@ -262,8 +263,10 @@ class Manager(object):
                 self.twitch_handler.stop()
         if self.highlights:
             self.logger.info("Writing highlight times to file")
-            h_file = open("%s\%s_highlights.txt" % (self.config["obs_integration"]["highlights_dir"],
-                                                    self.starttime.strftime('%Y-%m-%d-%H%M-%S')), 'a')
+            timedatestr = self.starttime.strftime('%Y-%m-%d-%H%M-%S')
+            directory = self.config["obs_integration"]["highlights_dir"]
+            highlight_dir = "{0}\{1}_highlights.txt".format(directory, timedatestr)
+            h_file = open(highlight_dir, 'a+')
             for highlight in self.highlights:
                 h_file.write(str(timedelta(milliseconds=highlight)) + '\n')
             h_file.close()
