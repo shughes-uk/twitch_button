@@ -68,7 +68,7 @@ class Manager(object):
         self.streaming_statuses = {}
         for name in names:
             self.streaming_statuses[name] = False
-        self.twitch_handler = twitcher.twitcher(names)
+        self.twitch_handler = twitcher(names)
         self.twitch_handler.subscribe_streaming_start(self.streaming_start_callback)
         self.twitch_handler.subscribe_streaming_stop(self.streaming_stop_callback)
 
