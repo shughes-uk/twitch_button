@@ -11,21 +11,24 @@ class OBSRemote(object):
         self.url = url
         self.streaming = False
         self.streamTime = 0
-        self.connected = True
+        self.connected = False
 
     def start(self):
         self.logger.info("Attempting to open comms with OBS")
         self.ws = websocket.WebSocketApp(self.url,
+                                         on_open=self.on_open,
                                          on_message=self.on_message,
                                          on_error=self.on_error,
                                          on_close=self.on_close,
                                          subprotocols=["obsapi"])
         thread.start_new_thread(self.ws.run_forever, ())
-        self.connected = True
 
     def stop(self):
         self.logger.info("Closing comms with OBS")
         self.ws.close()
+
+    def on_open(self, *args):
+        self.connected = True
 
     def on_message(self, ws, msg):
         try:
@@ -48,8 +51,10 @@ class OBSRemote(object):
     def on_error(self, ws, error):
         if error.errno == 10061:
             self.logger.warn("Error, connection to OBS refused, check OBS is running.")
+            self.connected = False
         else:
             self.logger.warn('Error ' + str(error))
+            self.connected = False
         return
 
     def on_close(self, ws):
