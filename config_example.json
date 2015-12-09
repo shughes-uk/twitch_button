@@ -3,34 +3,16 @@
     "ip": "127.0.0.1",
     "highlights_dir": "E:\\Stream_archives\\"
   },
-  "blinky_tape": {
-    "enabled": true,
-    "port": "COM5"
-  },
-  "phillips_hue": {
-    "enabled": false
-  },
-  "ultimarc_button": {
-    "enabled": true
-  },
-  "twitch_integration": {
-    "enabled": true
-  },
   "streamers": [
     {
       "obs_profile": "Maggie",
       "twitch_name": "Animaggus",
-      "color": [0, 0, 255]
-    },
-    {
-      "obs_profile": "Bryan",
-      "twitch_name": "smallbluesquare",
-      "color": [0, 255, 0]
+      "color": [57,184,227]
     },
     {
       "obs_profile": "Sam",
       "twitch_name": "CollectableCat",
-      "color": [255, 0, 0]
+      "color": [255, 0, 255]
     }
   ]
 }
