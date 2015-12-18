@@ -237,7 +237,8 @@ class Manager(object):
             self.finish_stream()
             self.state = 'idle'
             self.set_color(self.get_color())
-        if not self.twitch_handler.online_status[self.get_twitch_name()]:
+        if not self.streaming_statuses[self.get_twitch_name()]:
+
             self.alternate_colors(self.get_color(), RGB_RED)
         else:
             self.alternate_colors(self.get_color(), RGB_GREEN)
