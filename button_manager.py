@@ -5,7 +5,7 @@ import os
 import json
 import platform
 from obsremote import OBSRemote
-from twitcher import twitcher
+from twitchevents import twitchevents
 import logging
 from pprint import pformat
 if platform.system() == "Windows":
@@ -68,7 +68,7 @@ class Manager(object):
         self.streaming_statuses = {}
         for name in names:
             self.streaming_statuses[name] = False
-        self.twitch_handler = twitcher(names)
+        self.twitch_handler = twitchevents(names)
         self.twitch_handler.subscribe_streaming_start(self.streaming_start_callback)
         self.twitch_handler.subscribe_streaming_stop(self.streaming_stop_callback)
 
