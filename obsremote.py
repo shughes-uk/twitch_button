@@ -1,6 +1,6 @@
 import json
 import logging
-import thread
+import threading
 
 import websocket
 
@@ -22,7 +22,8 @@ class OBSRemote(object):
                                          on_error=self.on_error,
                                          on_close=self.on_close,
                                          subprotocols=["obsapi"])
-        thread.start_new_thread(self.ws.run_forever, ())
+        self.run_thread = threading.Thread(target=self.ws.run_forever)
+        self.run_thread.start()
 
     def stop(self):
         self.logger.info("Closing comms with OBS")
@@ -45,7 +46,7 @@ class OBSRemote(object):
                 elif decoded['update-type'] == "StreamStopping":
                     self.streaming = False
 
-        except Exception, E:
+        except Exception as E:
             self.logger.warn('Bad thing happened parsing obsremote message')
             self.logger.warn(str(E))
         return
