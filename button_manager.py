@@ -7,9 +7,8 @@ from datetime import datetime, timedelta
 from pprint import pformat
 from time import sleep
 
-from twitchevents import twitchevents
-
 from obsremote import OBSRemote
+from twitchevents import twitchevents
 
 if platform.system() == "Windows":
     from win32event import CreateMutex
