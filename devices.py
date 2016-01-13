@@ -1,7 +1,8 @@
-import pywinusb.hid as hid
-from time import time, sleep
-import threading
 import logging
+import threading
+from time import time, sleep
+
+import pywinusb.hid as hid
 
 
 class Device(object):

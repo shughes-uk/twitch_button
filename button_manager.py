@@ -1,13 +1,16 @@
-from time import sleep
-from datetime import datetime, timedelta
-from argparse import ArgumentParser
-import os
 import json
-import platform
-from obsremote import OBSRemote
-from twitchevents import twitchevents
 import logging
+import os
+import platform
+from argparse import ArgumentParser
+from datetime import datetime, timedelta
 from pprint import pformat
+from time import sleep
+
+from twitchevents import twitchevents
+
+from obsremote import OBSRemote
+
 if platform.system() == "Windows":
     from win32event import CreateMutex
     from win32api import CloseHandle, GetLastError
@@ -19,9 +22,9 @@ RGB_GREEN = (0, 255, 0)
 RGB_BLUE = (0, 0, 255)
 RGB_WHITE = (255, 255, 255)
 RGB_OFF = (0, 0, 0)
-TICK_FREQUENCY = 30  # milliseconds
+TICK_FREQUENCY = 100  # milliseconds
 # button/state frequency cannot be faster than tick frequency
-BUTTON_CHECK_FREQUENCY = 30  # milliseconds
+BUTTON_CHECK_FREQUENCY = 100  # milliseconds
 STATE_CHECK_FREQUENCY = 100  # milliseconds
 
 STREAMING_STATES = ['streaming_idle', 'wait_stop_streaming', 'wait_streaming', 'waitunpressed', 'streaming_pressed']
@@ -115,7 +118,7 @@ class Manager(object):
         self.next_state_check = datetime.now() + timedelta(microseconds=STATE_CHECK_FREQUENCY * 1000)
         try:
             while True:
-                sleep(TICK_FREQUENCY / 1000)
+                sleep(TICK_FREQUENCY / 1000.0)
                 if self.next_button_check < datetime.now():
                     self.handle_button()
                     self.next_button_check = datetime.now() + timedelta(microseconds=BUTTON_CHECK_FREQUENCY * 1000)

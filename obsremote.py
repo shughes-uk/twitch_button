@@ -1,7 +1,8 @@
-import websocket
-import thread
 import json
 import logging
+import thread
+
+import websocket
 
 
 class OBSRemote(object):
@@ -28,6 +29,7 @@ class OBSRemote(object):
         self.ws.close()
 
     def on_open(self, *args):
+        self.logger.info("Communication with obs established")
         self.connected = True
 
     def on_message(self, ws, msg):
