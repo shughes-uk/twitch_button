@@ -1,6 +1,6 @@
 import logging
 import threading
-from time import time, sleep
+from time import sleep, time
 
 import pywinusb.hid as hid
 
